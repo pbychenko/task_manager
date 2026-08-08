@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import user
@@ -34,6 +34,15 @@ class Repository(AbstractRepository):  # переименовал для кра�
     async def find_one(self, param, value):
         result = await self.session.execute(select(self.model).where(getattr(self.model, param) == value))
         return result.scalar_one_or_none()
+
+
+    async def delete_one(self, id):
+        stmt = delete(self.model).where(self.model.id == id)
+
+        result = await self.session.execute(stmt)
+
+        return result.rowcount  # Возвращает количество удаленных строк (0 или 1)
+        # print('result',result.count)  # Debug print statement
 
     
 

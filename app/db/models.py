@@ -30,7 +30,7 @@ class Task(Base):  # обязательно наследуем все модел
     description: Mapped[str]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
     completed: Mapped[bool] = mapped_column(default=False)  # Задали значение по-умолчанию False
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))  # Добавляем поле creator_id для хранения идентификатора создателя задачи
-    executor_id:Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    executor_id:Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))   # Добавляем поле executor_id для хранения идентификатора исполнителя задачи, может быть пустым
 
     creator: Mapped["User"] = relationship(
         back_populates="created_tasks", 

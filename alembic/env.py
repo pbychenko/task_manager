@@ -14,7 +14,7 @@ sys.path.append(os.path.join(sys.path[0], 'app'))
 
 from app.core.config import settings  # Добавили импорт нашего конфига
 from app.db.database import Base  # Добавили импорт нашей мета-БД
-from app.db.models import ToDo  # Добавили импорт модели, чтобы она инициализировалась, но она не используется
+from app.db.models import User, Task  # Добавили импорт моделей, чтобы они инициализировались, но они не используются
 # без этого импорта алембик может не увидеть наши модели и создаст пустую миграцию
 
 
