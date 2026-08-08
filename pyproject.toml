@@ -2,14 +2,24 @@
 name = "task-manager"
 version = "0.1.0"
 description = "Add your description here"
+dependencies = [
+    "sqlalchemy>=2.0.51",
+    "fastapi[standard]>=0.141.1",
+    "psycopg2>=2.9.12",
+    "asyncpg>=0.31.0",
+    "pydantic-settings>=2.14.2",
+    "alembic>=1.18.5",
+    "environs>=15.1.0",
+    "passlib>=1.7.4",
+    "pyjwt>=2.13.0",
+]
+[tool.uv]
+package = false
 readme = "README.md"
 authors = [
     { name = "Pavel Bychenko", email = "pavelv87@gmail.com" }
 ]
 requires-python = ">=3.11"
-dependencies = [
-    "fastapi[standard]>=0.141.1",
-]
 
 [project.scripts]
 task-manager = "task_manager:main"
