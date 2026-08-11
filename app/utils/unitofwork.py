@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 from app.db.database import async_session_maker
-from app.repositories.user_repository import UserRepository
 from app.repositories.task_repository import TaskRepository
+from app.repositories.user_repository import UserRepository
 
 
 class IUnitOfWork(ABC):
@@ -10,24 +10,19 @@ class IUnitOfWork(ABC):
     task: TaskRepository
 
     @abstractmethod
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     @abstractmethod
-    async def __aenter__(self):
-        ...
+    async def __aenter__(self): ...
 
     @abstractmethod
-    async def __aexit__(self, *args):
-        ...
+    async def __aexit__(self, *args): ...
 
     @abstractmethod
-    async def commit(self):
-        ...
+    async def commit(self): ...
 
     @abstractmethod
-    async def rollback(self):
-        ...
+    async def rollback(self): ...
 
 
 class UnitOfWork(IUnitOfWork):

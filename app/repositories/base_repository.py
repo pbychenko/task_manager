@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from sqlalchemy import select, insert, delete
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import user
@@ -16,7 +16,9 @@ class AbstractRepository(ABC):
         raise NotImplementedError
 
 
-class Repository(AbstractRepository):  # переименовал для краткости, но по-факту это репозиторий для алхимии из предыдущего урока про репозитории
+class Repository(
+    AbstractRepository
+):  # переименовал для краткости, но по-факту это репозиторий для алхимии из предыдущего урока про репозитории
     model = None  # алхимиевская модель
 
     def __init__(self, session: AsyncSession):
@@ -35,7 +37,6 @@ class Repository(AbstractRepository):  # переименовал для кра�
         result = await self.session.execute(select(self.model).where(getattr(self.model, param) == value))
         return result.scalar_one_or_none()
 
-
     async def delete_one(self, id):
         stmt = delete(self.model).where(self.model.id == id)
 
@@ -43,7 +44,3 @@ class Repository(AbstractRepository):  # переименовал для кра�
 
         return result.rowcount  # Возвращает количество удаленных строк (0 или 1)
         # print('result',result.count)  # Debug print statement
-
-    
-
-    

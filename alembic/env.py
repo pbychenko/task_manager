@@ -1,5 +1,6 @@
 import os  # Добавили импорт os для извлечения из окружения наших переменных
-import sys  # Добавили импорт модуля sys для работы с путями 
+import sys  # Добавили импорт модуля sys для работы с путями
+
 # (sys нужен для дальнейших импортов, иначе алембик не увидит нашу app папку)
 
 from logging.config import fileConfig
@@ -8,13 +9,17 @@ from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-# Тут добавили в пути нашу папку app, чтобы алембик её увидел. 
+# Тут добавили в пути нашу папку app, чтобы алембик её увидел.
 # Порядок импортов специально нарушен, т.к. код выполняется построчно
-sys.path.append(os.path.join(sys.path[0], 'app'))
+sys.path.append(os.path.join(sys.path[0], "app"))
 
 from app.core.config import settings  # Добавили импорт нашего конфига
 from app.db.database import Base  # Добавили импорт нашей мета-БД
-from app.db.models import User, Task  # Добавили импорт моделей, чтобы они инициализировались, но они не используются
+from app.db.models import (
+    User,
+    Task,
+)  # Добавили импорт моделей, чтобы они инициализировались, но они не используются
+
 # без этого импорта алембик может не увидеть наши модели и создаст пустую миграцию
 
 
@@ -85,9 +90,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
