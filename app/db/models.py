@@ -16,7 +16,9 @@ class User(Base):  # обязательно наследуем все модел
     username: Mapped[str] = mapped_column(
         unique=True, index=True
     )  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    password: Mapped[str]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
+    password: Mapped[
+        str
+    ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
     # created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())  # просто для примера
     created_tasks: Mapped[List["Task"]] = relationship(
         back_populates="creator",
@@ -34,11 +36,15 @@ class Task(Base):  # обязательно наследуем все модел
     id: Mapped[int] = mapped_column(
         BigInteger, primary_key=True, index=True
     )  # Строка  говорит, что наша колонка будет интом, но уточняет, что ещё и большим интом (актуально для ТГ-ботов), первичным ключом и индексироваться
-    title: Mapped[str]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
+    title: Mapped[
+        str
+    ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
     description: Mapped[
         str
     ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    completed: Mapped[bool] = mapped_column(default=False)  # Задали значение по-умолчанию False
+    completed: Mapped[bool] = mapped_column(
+        default=False
+    )  # Задали значение по-умолчанию False
     creator_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE")
     )  # Добавляем поле creator_id для хранения идентификатора создателя задачи

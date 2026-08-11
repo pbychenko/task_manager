@@ -34,7 +34,9 @@ class Repository(
         return result.scalars().all()
 
     async def find_one(self, param, value):
-        result = await self.session.execute(select(self.model).where(getattr(self.model, param) == value))
+        result = await self.session.execute(
+            select(self.model).where(getattr(self.model, param) == value)
+        )
         return result.scalar_one_or_none()
 
     async def delete_one(self, id):

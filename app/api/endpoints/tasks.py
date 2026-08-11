@@ -65,7 +65,9 @@ async def update_task(
 
     task = await task_service.get_task("id", task_id)
     if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
 
     data = task_data.model_dump(exclude_unset=True)
     if not data:
@@ -124,7 +126,9 @@ async def delete_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     if task.creator_id != user.id:
-        raise HTTPException(status_code=403, detail="You do not have permission to delete this task")
+        raise HTTPException(
+            status_code=403, detail="You do not have permission to delete this task"
+        )
 
     await task_service.delete_task(task_id)
 

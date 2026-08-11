@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.api.schemas.user import UserCreate, UserRead
-from app.core.security import compare_hash, create_jwt_token, get_hash, get_user_from_token
+from app.core.security import (
+    compare_hash,
+    create_jwt_token,
+    get_hash,
+    get_user_from_token,
+)
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 
@@ -13,8 +18,12 @@ async def get_user_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> UserServic
     return UserService(uow)
 
 
-@user_router.post("/register/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreate, user_service: UserService = Depends(get_user_service)):
+@user_router.post(
+    "/register/", response_model=UserRead, status_code=status.HTTP_201_CREATED
+)
+async def create_user(
+    user_data: UserCreate, user_service: UserService = Depends(get_user_service)
+):
     # if await user_service.get_user("username", user_data.username):
     #     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
 
@@ -22,15 +31,21 @@ async def create_user(user_data: UserCreate, user_service: UserService = Depends
     try:
         return await user_service.add_user(user_data)
     except IntegrityError as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists") from error
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="User already exists"
+        ) from error
 
 
 @user_router.post("/login/")
-async def login(user_data: UserCreate, user_service: UserService = Depends(get_user_service)):
+async def login(
+    user_data: UserCreate, user_service: UserService = Depends(get_user_service)
+):
     user = await user_service.get_user("username", user_data.username)
 
     if not user or not compare_hash(user_data.password, user.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
 
     token = create_jwt_token({"sub": user.username})
 
@@ -55,7 +70,9 @@ async def get_user_by_id(
     user = await user_service.get_user("id", str(user_id))
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     return user
 

@@ -10,7 +10,9 @@ class TaskUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     completed: bool | None = None  # Задали значение по-умолчанию False
-    executor_id: int | None = None  # Добавляем поле executor_id для хранения идентификатора исполнителя задачи
+    executor_id: int | None = (
+        None  # Добавляем поле executor_id для хранения идентификатора исполнителя задачи
+    )
 
 
 class TaskBulkUpdate(TaskUpdate):
@@ -30,7 +32,9 @@ class TaskFromDB(BaseModel):
     title: str
     description: str
     completed: bool = Field(default=False)  # Задали значение по-умолчанию False
-    creator_id: int  # Добавляем поле creator_id для хранения идентификатора создателя задачи
+    creator_id: (
+        int  # Добавляем поле creator_id для хранения идентификатора создателя задачи
+    )
     executor_id: (
         int | None
     )  # Добавляем поле executor_id для хранения идентификатора исполнителя задачи, может быть пустым

@@ -26,7 +26,9 @@ def create_jwt_token(data: Dict):
     """
     Функция для создания JWT токена. Мы копируем входные данные, добавляем время истечения и кодируем токен.
     """
-    to_encode = data.copy()  # Копируем данные, чтобы не изменить исходный словарь Задаем время истечения токена
+    to_encode = (
+        data.copy()
+    )  # Копируем данные, чтобы не изменить исходный словарь Задаем время истечения токена
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )  # Задаем время истечения токена
@@ -46,7 +48,9 @@ def get_user_from_token(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )  # Декодируем токен с помощью секретного ключа
-        return payload.get("sub")  # Возвращаем утверждение о пользователе (subject) из полезной нагрузки
+        return payload.get(
+            "sub"
+        )  # Возвращаем утверждение о пользователе (subject) из полезной нагрузки
     except jwt.ExpiredSignatureError:
         pass  # Обработка ошибки истечения срока действия токена
     except jwt.InvalidTokenError:
