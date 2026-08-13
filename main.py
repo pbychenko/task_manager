@@ -11,7 +11,7 @@ app.include_router(task_router)
 
 @app.get("/health", include_in_schema=False)
 async def health():
-    return {"status": "oddddk"}
+    return {"status": "oddddtestk"}
 
 if __name__ == "__main__":
     uvicorn.run(app="main:app")
