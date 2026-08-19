@@ -6,45 +6,55 @@ from app.api.endpoints.tasks import task_router
 from app.api.endpoints.users import user_router
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, InvalidCredentialsError, ForbiddenError
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 
 app = FastAPI()
 
+@app.exception_handler(ForbiddenError)
+async def forbidden_error_handler(_: Request, exc: ForbiddenError):
+    logger.exception("Forbidden error")
+
+    return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)})
+
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(_: Request, exc: IntegrityError):
-    # logger.exception("Database integrity error")
+    logger.exception("Database integrity error")
 
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content={"detail": "Operation conflicts with existing data"},
     )
 
-@app.exception_handler(SQLAlchemyError)
-async def db_error_handler(request, exc: SQLAlchemyError):
-    # logger.exception("Database error")          # логируем полный traceback у себя
+@app.exception_handler(InvalidCredentialsError)
+async def invalid_credentials_error_handler(_: Request, exc: InvalidCredentialsError):
+    logger.info("Invalid credentials error")
+
     return JSONResponse(
-        status_code=503,                        # "сервис временно недоступен", не 500
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def db_error_handler(_: Request, exc: SQLAlchemyError):
+    logger.exception("Database error")          
+    return JSONResponse(
+        status_code=503,                        
         content={"detail": "Service temporarily unavailable"},
     )
 
 @app.exception_handler(NotFoundError)
-async def user_not_found_error_handler(_: Request, exc: NotFoundError):
-    # logger.exception("User not found error")
+async def not_found_error_handler(_: Request, exc: NotFoundError):
+    logger.exception("Not found error")
 
     return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
 
-@app.exception_handler(NotFoundError)
-async def task_not_found_error_handler(_: Request, exc: NotFoundError):
-    # logger.exception("Task not found error")
-
-    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
-
-@app.exception_handler(PermissionError)
-async def permission_error_handler(_: Request, exc: PermissionError):
-    # logger.exception("Permission error")
-
-    return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)})
 
 
 app.include_router(user_router)

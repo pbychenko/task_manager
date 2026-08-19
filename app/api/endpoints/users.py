@@ -27,14 +27,7 @@ async def create_user(
 async def login(
     user_data: UserCreate, user_service: UserService = Depends(get_user_service)
 ):
-    user = await user_service.get_user("username", user_data.username)
-
-    if not user or not compare_hash(user_data.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
-        )
-
-
+    user = await user_service.authenticate(user_data.username, user_data.password)
     token = create_jwt_token({"sub": str(user.id)})
 
     return {"access_token": token, "token_type": "bearer"}

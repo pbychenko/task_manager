@@ -3,7 +3,8 @@ from app.utils.unitofwork import IUnitOfWork
 from app.core.security import (
     get_hash
 )
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, InvalidCredentialsError
+from app.core.security import compare_hash
 
 class UserService:
     def __init__(self, uow: IUnitOfWork):
@@ -20,6 +21,14 @@ class UserService:
             )
             await uow.commit()
             return user_to_return
+
+    async def authenticate(self, username: str, password: str) -> UserFromDB:
+        async with self.uow as uow:
+            user = await uow.user.find_one("username", username)
+            if user is None or not compare_hash(password, user.password):
+                raise InvalidCredentialsError("Invalid username or password")
+        
+            return UserFromDB.model_validate(user)
         
 
     async def get_user(self, param: str, value: str) -> UserFromDB | None:

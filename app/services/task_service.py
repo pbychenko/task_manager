@@ -1,6 +1,6 @@
 from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate
 from app.utils.unitofwork import IUnitOfWork
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForbiddenError, NotFoundError
 
 
 class TaskService:
@@ -41,20 +41,21 @@ class TaskService:
     async def get_task(self, param: str, value: str) -> TaskFromDB | None:
         async with self.uow as uow:
             task = await uow.task.find_one(param, value)
-            return TaskFromDB.model_validate(task) if task else None
+            if not task:
+                raise NotFoundError(f"Task with {param}={value} not found")
+            
+            return TaskFromDB.model_validate(task)
 
     async def delete_task(self, id: int, user_id: int) -> None:
-        task = await self.get_task("id", id)
-        
-        if not task:
-            raise NotFoundError(f"Task {id} not found")
-
-        print(f"Task creator_id: {task.creator_id}, User ID: {user_id}")  # Debug print statement
-        if task.creator_id != user_id:
-            raise PermissionError("You do not have permission to delete this task")
-        
         async with self.uow as uow:
-            deleted_count = await uow.task.delete_one(id)
-            await uow.commit()
+            task = await uow.task.find_one("id", id)
+        
+            if not task:
+                raise NotFoundError(f"Task {id} not found")
 
-            return deleted_count
+            if task.creator_id != user_id:
+                raise ForbiddenError("You do not have permission to delete this task")
+        
+        
+            await uow.task.delete_one(id)
+            await uow.commit()

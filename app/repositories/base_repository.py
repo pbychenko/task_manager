@@ -3,9 +3,6 @@ from abc import ABC, abstractmethod
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.schemas import user
-
-
 class AbstractRepository(ABC):
     @abstractmethod
     async def add_one(self, data: dict):
@@ -27,7 +24,7 @@ class Repository(
     async def add_one(self, data: dict):
         stmt = insert(self.model).values(**data).returning(self.model)
         res = await self.session.execute(stmt)
-        
+
         return res.scalar_one_or_none()
 
     async def find_all(self):
