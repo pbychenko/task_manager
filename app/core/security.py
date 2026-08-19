@@ -1,14 +1,15 @@
+from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta, timezone
 from typing import Dict
+from app.api.schemas.user import UserRead
 
 import jwt
 
-# import datetime
-from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from passlib.hash import pbkdf2_sha256
 
 from app.core.config import settings
+from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/")
 
@@ -21,37 +22,47 @@ def compare_hash(password: str, hashed_password: str):
     return pbkdf2_sha256.verify(password, hashed_password)
 
 
-# Функция для создания JWT токена с заданным временем жизни
 def create_jwt_token(data: Dict):
-    """
-    Функция для создания JWT токена. Мы копируем входные данные, добавляем время истечения и кодируем токен.
-    """
     to_encode = (
         data.copy()
-    )  # Копируем данные, чтобы не изменить исходный словарь Задаем время истечения токена
+    )  
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )  # Задаем время истечения токена
+    )  
 
-    to_encode.update({"exp": expire})  # Добавляем время истечения в данные токена
+    to_encode.update({"exp": expire})  
     return jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
-    )  # Кодируем токен с использованием секретного ключа и алгоритма
+    )  
 
 
-# Функция для получения пользователя из токена
-def get_user_from_token(token: str = Depends(oauth2_scheme)):
-    """
-    Функция для извлечения информации о пользователе из токена. Проверяем токен и извлекаем утверждение о пользователе.
-    """
+async def get_user_from_token(token: str = Depends(oauth2_scheme),
+                         uow: IUnitOfWork = Depends(UnitOfWork)): 
+    unauthorized = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )  # Декодируем токен с помощью секретного ключа
-        return payload.get(
-            "sub"
-        )  # Возвращаем утверждение о пользователе (subject) из полезной нагрузки
+        )
+        user_id = payload.get("sub")
+        
     except jwt.ExpiredSignatureError:
-        pass  # Обработка ошибки истечения срока действия токена
+        raise unauthorized
+
     except jwt.InvalidTokenError:
-        pass  # Обработка ошибки недействительного токена
+        raise unauthorized
+
+    if user_id is None:
+        raise unauthorized
+
+    async with uow:
+        user = await uow.user.find_one("id", int(user_id))
+
+        if user is None:
+            raise unauthorized
+
+        return UserRead.model_validate(user)

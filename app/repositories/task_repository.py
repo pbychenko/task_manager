@@ -16,7 +16,4 @@ class TaskRepository(Repository):
         )
 
         result = await self.session.execute(stmt)
-        return (
-            result.scalar_one_or_none()
-        )  # Возвращает одну запись или None, если запись не найдена
-        # return result.scalar_one_or_none()
+        return result.scalar_one_or_none()

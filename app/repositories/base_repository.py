@@ -27,7 +27,8 @@ class Repository(
     async def add_one(self, data: dict):
         stmt = insert(self.model).values(**data).returning(self.model)
         res = await self.session.execute(stmt)
-        return res.scalar_one()
+        
+        return res.scalar_one_or_none()
 
     async def find_all(self):
         result = await self.session.execute(select(self.model))

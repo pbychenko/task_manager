@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from app.db.database import async_session_maker
 from app.repositories.task_repository import TaskRepository
 from app.repositories.user_repository import UserRepository
+from typing import Self
 
 
 class IUnitOfWork(ABC):
@@ -13,7 +14,7 @@ class IUnitOfWork(ABC):
     def __init__(self): ...
 
     @abstractmethod
-    async def __aenter__(self): ...
+    async def __aenter__(self) -> Self: ...
 
     @abstractmethod
     async def __aexit__(self, *args): ...
