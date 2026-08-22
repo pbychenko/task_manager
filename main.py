@@ -18,7 +18,7 @@ app = FastAPI()
 
 @app.exception_handler(ForbiddenError)
 async def forbidden_error_handler(_: Request, exc: ForbiddenError):
-    logger.exception("Forbidden error")
+    logger.warning("Forbidden error")
 
     return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)})
 
@@ -51,7 +51,7 @@ async def db_error_handler(_: Request, exc: SQLAlchemyError):
 
 @app.exception_handler(NotFoundError)
 async def not_found_error_handler(_: Request, exc: NotFoundError):
-    logger.exception("Not found error")
+    logger.info("Not found error")
 
     return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
 

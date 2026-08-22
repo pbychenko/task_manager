@@ -1,10 +1,7 @@
 from app.api.schemas.user import UserCreate, UserFromDB, UserRead
 from app.utils.unitofwork import IUnitOfWork
-from app.core.security import (
-    get_hash
-)
+from app.core.security import get_hash, compare_hash
 from app.core.exceptions import NotFoundError, InvalidCredentialsError
-from app.core.security import compare_hash
 
 class UserService:
     def __init__(self, uow: IUnitOfWork):
@@ -31,12 +28,13 @@ class UserService:
             return UserFromDB.model_validate(user)
         
 
-    async def get_user(self, param: str, value: str) -> UserFromDB | None:
+    async def get_user(self, param: str, value: str) -> UserFromDB:
         async with self.uow as uow:
             user = await uow.user.find_one(param, value)
             if not user:
                 raise NotFoundError(f"User with {param}={value} not found")
-            return UserFromDB.model_validate(user) if user else None
+            return UserFromDB.model_validate(user)
+        
 
     async def get_users(self) -> list[UserFromDB]:
         async with self.uow as uow:

@@ -20,7 +20,7 @@ class TaskService:
             return task_to_return
         
 
-    async def update_task(self, task_id: int, task_data: TaskUpdate) -> TaskFromDB | None:
+    async def update_task(self, task_id: int, task_data: TaskUpdate) -> TaskFromDB:
         data: dict = task_data.model_dump(exclude_unset=True)
         async with self.uow as uow:
             updated_task = await uow.task.update_task("id", task_id, data)
@@ -38,7 +38,7 @@ class TaskService:
 
             return [TaskFromDB.model_validate(task) for task in tasks]
 
-    async def get_task(self, param: str, value: str) -> TaskFromDB | None:
+    async def get_task(self, param: str, value: str) -> TaskFromDB:
         async with self.uow as uow:
             task = await uow.task.find_one(param, value)
             if not task:

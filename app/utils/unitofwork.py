@@ -40,8 +40,8 @@ class UnitOfWork(IUnitOfWork):
     async def __aexit__(self, *args):
         await self.rollback()
         await self.session.close()
-        self.session = None  # спасибо за наводку Дмитрию Морозову, очищаем сессию после выхода из контекста
-
+        self.session = None
+        
     async def commit(self):
         await self.session.commit()
 

@@ -15,11 +15,11 @@ class AbstractRepository(ABC):
 
 class Repository(
     AbstractRepository
-):  # переименовал для краткости, но по-факту это репозиторий для алхимии из предыдущего урока про репозитории
-    model = None  # алхимиевская модель
+):  
+    model = None  
 
     def __init__(self, session: AsyncSession):
-        self.session = session  # и алхимиевская сессия
+        self.session = session 
 
     async def add_one(self, data: dict):
         stmt = insert(self.model).values(**data).returning(self.model)
@@ -42,5 +42,4 @@ class Repository(
 
         result = await self.session.execute(stmt)
 
-        return result.rowcount  # Возвращает количество удаленных строк (0 или 1)
-        # print('result',result.count)  # Debug print statement
+        return result.rowcount
