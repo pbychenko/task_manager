@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.api.schemas.user import UserCreate, UserRead
 from app.core.security import (

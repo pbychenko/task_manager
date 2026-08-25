@@ -43,10 +43,10 @@ class Task(Base):
         default=False
     )  
     creator_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE")
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
     )  
     executor_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL")
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
     )  
 
     creator: Mapped["User"] = relationship(
