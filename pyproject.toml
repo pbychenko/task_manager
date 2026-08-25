@@ -24,6 +24,11 @@ requires-python = ">=3.11"
 [project.scripts]
 task-manager = "task_manager:main"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13.0"]
 build-backend = "uv_build"
@@ -35,4 +40,5 @@ dev = [
     "isort>=8.0.1",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
 ]

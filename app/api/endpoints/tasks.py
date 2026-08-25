@@ -17,6 +17,13 @@ async def get_task_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> TaskServic
 async def get_user_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> UserService:
     return UserService(uow)
 
+@task_router.get("/{task_id}", response_model=TaskFromDB)
+async def get_task_by_id(
+    task_id: int,
+    _: str = Depends(get_user_from_token),
+    task_service: TaskService = Depends(get_task_service)
+):
+    return await task_service.get_task("id", task_id)
 
 @task_router.get("/", response_model=list[TaskFromDB])
 async def get_all_tasks(
