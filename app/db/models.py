@@ -4,6 +4,8 @@ from sqlalchemy import BigInteger, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+import sqlalchemy as sa
+
 
 
 class User(Base):
@@ -27,7 +29,7 @@ class Task(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     title: Mapped[str]
     description: Mapped[str]
-    completed: Mapped[bool] = mapped_column(default=False)
+    completed: Mapped[bool] = mapped_column(server_default=sa.text("false"))
     creator_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
