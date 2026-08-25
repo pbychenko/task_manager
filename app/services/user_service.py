@@ -1,7 +1,8 @@
 from app.api.schemas.user import UserCreate, UserFromDB, UserRead
+from app.core.exceptions import InvalidCredentialsError, NotFoundError
+from app.core.security import compare_hash, get_hash
 from app.utils.unitofwork import IUnitOfWork
-from app.core.security import get_hash, compare_hash
-from app.core.exceptions import NotFoundError, InvalidCredentialsError
+
 
 class UserService:
     def __init__(self, uow: IUnitOfWork):
@@ -13,9 +14,7 @@ class UserService:
 
         async with self.uow as uow:
             user_from_db = await uow.user.add_one(user_dict)
-            user_to_return = UserRead.model_validate(
-                user_from_db
-            )
+            user_to_return = UserRead.model_validate(user_from_db)
             await uow.commit()
             return user_to_return
 
@@ -24,9 +23,8 @@ class UserService:
             user = await uow.user.find_one("username", username)
             if user is None or not compare_hash(password, user.password):
                 raise InvalidCredentialsError("Invalid username or password")
-        
+
             return UserFromDB.model_validate(user)
-        
 
     async def get_user(self, param: str, value: str) -> UserFromDB:
         async with self.uow as uow:
@@ -34,9 +32,8 @@ class UserService:
             if not user:
                 raise NotFoundError(f"User with {param}={value} not found")
             return UserFromDB.model_validate(user)
-        
 
-    async def get_users(self) -> list[UserFromDB]:
+    async def get_users(self, skip, limit) -> list[UserFromDB]:
         async with self.uow as uow:
-            users: list = await uow.user.find_all()
+            users: list = await uow.user.find_all(skip, limit)
             return [UserFromDB.model_validate(user) for user in users]

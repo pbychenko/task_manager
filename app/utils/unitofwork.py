@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import Self
 
 from app.db.database import async_session_maker
 from app.repositories.task_repository import TaskRepository
 from app.repositories.user_repository import UserRepository
-from typing import Self
 
 
 class IUnitOfWork(ABC):
@@ -41,7 +41,7 @@ class UnitOfWork(IUnitOfWork):
         await self.rollback()
         await self.session.close()
         self.session = None
-        
+
     async def commit(self):
         await self.session.commit()
 

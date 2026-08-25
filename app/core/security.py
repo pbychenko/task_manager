@@ -1,15 +1,15 @@
-from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta, timezone
 from typing import Dict
-from app.api.schemas.user import UserRead
 
 import jwt
-
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.hash import pbkdf2_sha256
 
+from app.api.schemas.user import UserRead
 from app.core.config import settings
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/")
 
@@ -23,21 +23,18 @@ def compare_hash(password: str, hashed_password: str):
 
 
 def create_jwt_token(data: Dict):
-    to_encode = (
-        data.copy()
-    )  
+    to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )  
+    )
 
-    to_encode.update({"exp": expire})  
-    return jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
-    )  
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-async def get_user_from_token(token: str = Depends(oauth2_scheme),
-                         uow: IUnitOfWork = Depends(UnitOfWork)): 
+async def get_user_from_token(
+    token: str = Depends(oauth2_scheme), uow: IUnitOfWork = Depends(UnitOfWork)
+):
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -49,7 +46,7 @@ async def get_user_from_token(token: str = Depends(oauth2_scheme),
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         user_id = payload.get("sub")
-        
+
     except jwt.ExpiredSignatureError:
         raise unauthorized
 

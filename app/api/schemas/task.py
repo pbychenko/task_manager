@@ -9,8 +9,8 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    completed: bool | None = None 
-    executor_id: int | None = None 
+    completed: bool | None = None
+    executor_id: int | None = None
 
     @model_validator(mode="after")
     def has_update_fields(self):

@@ -1,6 +1,6 @@
 from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate
-from app.utils.unitofwork import IUnitOfWork
 from app.core.exceptions import ForbiddenError, NotFoundError
+from app.utils.unitofwork import IUnitOfWork
 
 
 class TaskService:
@@ -9,16 +9,13 @@ class TaskService:
 
     async def add_task(self, task: TaskCreate, creator_id: int) -> TaskFromDB:
         task_dict: dict = task.model_dump()
-        task_dict["creator_id"] = creator_id 
-        async with self.uow as uow: 
+        task_dict["creator_id"] = creator_id
+        async with self.uow as uow:
             task_from_db = await uow.task.add_one(task_dict)
-            task_to_return = TaskFromDB.model_validate(
-                task_from_db
-            ) 
+            task_to_return = TaskFromDB.model_validate(task_from_db)
             await uow.commit()
 
             return task_to_return
-        
 
     async def update_task(self, task_id: int, task_data: TaskUpdate) -> TaskFromDB:
         data: dict = task_data.model_dump(exclude_unset=True)
@@ -32,9 +29,9 @@ class TaskService:
             await uow.commit()  # это самый важный кусок кода, до этого коммита можно записать данные в 50 моделей, но если кто-то вылетит с ошибкой, все изменения откатятся! Если код дошёл сюда, то все прошло окей!
             return task_to_return
 
-    async def get_tasks(self) -> list[TaskFromDB]:
+    async def get_tasks(self, skip, limit) -> list[TaskFromDB]:
         async with self.uow as uow:
-            tasks: list = await uow.task.find_all()
+            tasks: list = await uow.task.find_all(skip, limit)
 
             return [TaskFromDB.model_validate(task) for task in tasks]
 
@@ -43,19 +40,18 @@ class TaskService:
             task = await uow.task.find_one(param, value)
             if not task:
                 raise NotFoundError(f"Task with {param}={value} not found")
-            
+
             return TaskFromDB.model_validate(task)
 
     async def delete_task(self, id: int, user_id: int) -> None:
         async with self.uow as uow:
             task = await uow.task.find_one("id", id)
-        
+
             if not task:
                 raise NotFoundError(f"Task {id} not found")
 
             if task.creator_id != user_id:
                 raise ForbiddenError("You do not have permission to delete this task")
-        
-        
+
             await uow.task.delete_one(id)
             await uow.commit()

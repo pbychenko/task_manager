@@ -2,13 +2,10 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=find_dotenv(),
-        extra="ignore"
-    )
 
-    
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=find_dotenv(), extra="ignore")
+
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str

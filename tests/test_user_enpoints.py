@@ -1,5 +1,6 @@
 from httpx import AsyncClient
 
+
 class TestRegister:
     async def test_register_returns_created_user(self, async_client: AsyncClient):
         response = await async_client.post(
@@ -11,7 +12,7 @@ class TestRegister:
         body = response.json()
         assert body["username"] == "bob"
         assert "id" in body
-        assert "password" not in body  
+        assert "password" not in body
 
     async def test_register_duplicate_username_returns_conflict(
         self, async_client: AsyncClient, registered_user: dict
@@ -46,7 +47,10 @@ class TestLogin:
     ):
         response = await async_client.post(
             "/users/login/",
-            json={"username": registered_user["username"], "password": "wrong-password"},
+            json={
+                "username": registered_user["username"],
+                "password": "wrong-password",
+            },
         )
 
         assert response.status_code == 401

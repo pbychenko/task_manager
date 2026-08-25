@@ -1,22 +1,21 @@
 from fastapi import APIRouter, Depends, status
 
 from app.api.schemas.user import UserCreate, UserRead
-from app.core.security import (
-    compare_hash,
-    create_jwt_token,
-    get_user_from_token,
-)
+from app.core.security import compare_hash, create_jwt_token, get_user_from_token
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
 
+
 async def get_user_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> UserService:
     return UserService(uow)
 
 
-@user_router.post("/register/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@user_router.post(
+    "/register/", response_model=UserRead, status_code=status.HTTP_201_CREATED
+)
 async def create_user(
     user_data: UserCreate, user_service: UserService = Depends(get_user_service)
 ):
@@ -38,13 +37,15 @@ async def get_user_by_id(
     user_id: int,
     _: UserRead = Depends(get_user_from_token),
     user_service: UserService = Depends(get_user_service),
-):  
-   return await user_service.get_user("id", user_id)
+):
+    return await user_service.get_user("id", user_id)
 
 
 @user_router.get("/", response_model=list[UserRead])
 async def get_users(
+    skip: int = 0,
+    limit: int = 10,
     _: str = Depends(get_user_from_token),
-    user_service: UserService = Depends(get_user_service)
+    user_service: UserService = Depends(get_user_service),
 ):
-    return await user_service.get_users()
+    return await user_service.get_users(skip, limit)
