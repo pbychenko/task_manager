@@ -70,7 +70,7 @@ app.include_router(task_router)
 
 @app.get("/health", include_in_schema=False)
 async def health():
-    return {"status": "chpok"}
+    return {"status": "chposk"}
 
 
 if __name__ == "__main__":
