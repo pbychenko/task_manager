@@ -16,11 +16,11 @@ class User(Base):
     password: Mapped[str]
     created_tasks: Mapped[List["Task"]] = relationship(
         back_populates="creator",
-        foreign_keys="[Task.creator_id]",  # Указываем, какой ключ отслеживать
+        foreign_keys="[Task.creator_id]", 
     )
     executed_tasks: Mapped[List["Task"]] = relationship(
         back_populates="executor",
-        foreign_keys="[Task.executor_id]",  # Указываем, какой ключ отслеживать
+        foreign_keys="[Task.executor_id]", 
     )
 
 

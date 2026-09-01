@@ -14,6 +14,6 @@ class TaskRepository(Repository):
             .values(**data)
             .returning(self.model)
         )
-
         result = await self.session.execute(stmt)
+
         return result.scalar_one_or_none()

@@ -12,25 +12,22 @@ from app.db.database import Base
 from app.utils.unitofwork import UnitOfWork
 from main import app
 
-
 load_dotenv()
 
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
 
 
 def _to_asyncpg_url(url: str) -> str:
-    """Приводим URL к драйверу asyncpg, аналогично Settings.async_database_url."""
-    print("test", make_url(url).set(drivername="postgresql+asyncpg"))
     return make_url(url).set(drivername="postgresql+asyncpg")
 
 
 test_engine = create_async_engine(
     _to_asyncpg_url(TEST_DATABASE_URL), poolclass=NullPool
 )
+
 test_async_session_maker = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
-
 
 class TestUnitOfWork(UnitOfWork):
     """UnitOfWork, использующий тестовый session_factory вместо боевого."""
@@ -57,6 +54,7 @@ async def prepare_database() -> AsyncGenerator[None, None]:
 @pytest_asyncio.fixture(autouse=True)
 async def clean_tables() -> AsyncGenerator[None, None]:
     yield
+
     async with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             await conn.execute(table.delete())
@@ -82,16 +80,16 @@ task_data = {"title": "new task", "description": "new_task_description"}
 
 @pytest_asyncio.fixture
 async def registered_user(async_client: AsyncClient) -> dict:
-    """Регистрирует пользователя через API и возвращает его данные + пароль."""
     response = await async_client.post("/users/register/", json=TEST_USER)
     assert response.status_code == 201
+
     user = response.json()
+    
     return {**user, "password": TEST_USER["password"]}
 
 
 @pytest_asyncio.fixture
 async def auth_headers(async_client: AsyncClient, registered_user: dict) -> dict:
-    """Логинит зарегистрированного пользователя и возвращает заголовок Authorization."""
     response = await async_client.post(
         "/users/login/",
         json={
@@ -100,14 +98,16 @@ async def auth_headers(async_client: AsyncClient, registered_user: dict) -> dict
         },
     )
     assert response.status_code == 200
+
     token = response.json()["access_token"]
+
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest_asyncio.fixture
 async def task(async_client: AsyncClient, auth_headers: dict) -> dict:
-
     response = await async_client.post("/tasks/", json=task_data, headers=auth_headers)
 
     assert response.status_code == 200
+
     return response.json()

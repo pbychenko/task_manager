@@ -25,6 +25,6 @@ class TaskFromDB(BaseModel):
     id: int
     title: str
     description: str
-    completed: bool = Field(default=False)  # Задали значение по-умолчанию False
+    completed: bool = Field(default=False)
     creator_id: int
     executor_id: int | None

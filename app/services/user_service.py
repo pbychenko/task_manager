@@ -15,12 +15,15 @@ class UserService:
         async with self.uow as uow:
             user_from_db = await uow.user.add_one(user_dict)
             user_to_return = UserRead.model_validate(user_from_db)
+
             await uow.commit()
+
             return user_to_return
 
     async def authenticate(self, username: str, password: str) -> UserFromDB:
         async with self.uow as uow:
             user = await uow.user.find_one("username", username)
+
             if user is None or not compare_hash(password, user.password):
                 raise InvalidCredentialsError("Invalid username or password")
 
@@ -29,11 +32,14 @@ class UserService:
     async def get_user(self, param: str, value: str) -> UserFromDB:
         async with self.uow as uow:
             user = await uow.user.find_one(param, value)
+
             if not user:
                 raise NotFoundError(f"User with {param}={value} not found")
+
             return UserFromDB.model_validate(user)
 
     async def get_users(self, skip, limit) -> list[UserFromDB]:
         async with self.uow as uow:
             users: list = await uow.user.find_all(skip, limit)
+            
             return [UserFromDB.model_validate(user) for user in users]

@@ -2,7 +2,6 @@ from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.utils.unitofwork import IUnitOfWork
 
-
 class TaskService:
     def __init__(self, uow: IUnitOfWork):
         self.uow = uow
@@ -10,6 +9,7 @@ class TaskService:
     async def add_task(self, task: TaskCreate, creator_id: int) -> TaskFromDB:
         task_dict: dict = task.model_dump()
         task_dict["creator_id"] = creator_id
+
         async with self.uow as uow:
             task_from_db = await uow.task.add_one(task_dict)
             task_to_return = TaskFromDB.model_validate(task_from_db)
@@ -19,14 +19,16 @@ class TaskService:
 
     async def update_task(self, task_id: int, task_data: TaskUpdate) -> TaskFromDB:
         data: dict = task_data.model_dump(exclude_unset=True)
+
         async with self.uow as uow:
             updated_task = await uow.task.update_task("id", task_id, data)
+
             if updated_task is None:
                 raise NotFoundError(f"Task {task_id} not found")
 
             task_to_return = TaskFromDB.model_validate(updated_task)
-
             await uow.commit()  # это самый важный кусок кода, до этого коммита можно записать данные в 50 моделей, но если кто-то вылетит с ошибкой, все изменения откатятся! Если код дошёл сюда, то все прошло окей!
+
             return task_to_return
 
     async def get_tasks(self, skip, limit) -> list[TaskFromDB]:
@@ -38,6 +40,7 @@ class TaskService:
     async def get_task(self, param: str, value: str) -> TaskFromDB:
         async with self.uow as uow:
             task = await uow.task.find_one(param, value)
+            
             if not task:
                 raise NotFoundError(f"Task with {param}={value} not found")
 

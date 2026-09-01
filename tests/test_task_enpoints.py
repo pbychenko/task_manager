@@ -5,7 +5,7 @@ task_data = {"title": "new task", "description": "new_task_description"}
 
 
 class TestTaskCreate:
-    async def test_create_task(self, async_client: AsyncClient, task: dict):
+    async def test_create_task(self, task: dict):
         assert task["title"] == task_data["title"]
         assert task["description"] == task_data["description"]
         assert task["completed"] is False
@@ -37,6 +37,7 @@ class TestUpdateTask:
         assert response.status_code == 200
 
         updated_task = response.json()
+
         assert updated_task["title"] == new_task_data["title"]
         assert updated_task["description"] == new_task_data["description"]
         assert updated_task["completed"] is True
@@ -132,7 +133,6 @@ class TestGetTask:
     ):
         task_id_1 = task["id"]
         creator_id = task["creator_id"]
-
         new_task_data = {"title": "new task1", "description": "new_task_description1"}
 
         response = await async_client.post(
@@ -145,8 +145,8 @@ class TestGetTask:
         response = await async_client.get("/tasks/", headers=auth_headers)
 
         assert response.status_code == 200
-        tasks = response.json()
 
+        tasks = response.json()
         default_data = {
             "completed": False,
             "creator_id": creator_id,
@@ -160,7 +160,6 @@ class TestGetTask:
         assert tasks == expected_tasks
 
         response = await async_client.get(f"/tasks/{task_id_2}", headers=auth_headers)
-
         task = response.json()
 
         assert task == {"id": task_id_2, **new_task_data, **default_data}
