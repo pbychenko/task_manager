@@ -1,63 +1,48 @@
-import datetime
 from typing import List
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey
+from sqlalchemy import BigInteger, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+import sqlalchemy as sa
 
 
-class User(Base):  # обязательно наследуем все модели от нашей Base-метатаблицы
-    __tablename__ = "users"  # Указываем как будет называться наша таблица в базе данных (пишется в ед. числе)
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, index=True
-    )  # Строка  говорит, что наша колонка будет интом, но уточняет, что ещё и большим интом (актуально для ТГ-ботов), первичным ключом и индексироваться
-    username: Mapped[str] = mapped_column(
-        unique=True, index=True
-    )  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    password: Mapped[
-        str
-    ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    # created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())  # просто для примера
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(unique=True, index=True)
+    password: Mapped[str]
     created_tasks: Mapped[List["Task"]] = relationship(
         back_populates="creator",
-        foreign_keys="[Task.creator_id]",  # Указываем, какой ключ отслеживать
+        foreign_keys="[Task.creator_id]", 
     )
     executed_tasks: Mapped[List["Task"]] = relationship(
         back_populates="executor",
-        foreign_keys="[Task.executor_id]",  # Указываем, какой ключ отслеживать
+        foreign_keys="[Task.executor_id]", 
     )
 
 
-class Task(Base):  # обязательно наследуем все модели от нашей Base-метатаблицы
-    __tablename__ = "tasks"  # Указываем как будет называться наша таблица в базе данных (пишется в ед. числе)
-
-    id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, index=True
-    )  # Строка  говорит, что наша колонка будет интом, но уточняет, что ещё и большим интом (актуально для ТГ-ботов), первичным ключом и индексироваться
-    title: Mapped[
-        str
-    ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    description: Mapped[
-        str
-    ]  # Просто строка без доп.условий; если нужно дополнительные условия добавить, то mapped_column
-    completed: Mapped[bool] = mapped_column(
-        default=False
-    )  # Задали значение по-умолчанию False
+class Task(Base):
+    __tablename__ = "tasks"  #
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    title: Mapped[str]
+    description: Mapped[str]
+    completed: Mapped[bool] = mapped_column(server_default=sa.text("false"))
     creator_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE")
-    )  # Добавляем поле creator_id для хранения идентификатора создателя задачи
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     executor_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL")
-    )  # Добавляем поле executor_id для хранения идентификатора исполнителя задачи, может быть пустым
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
 
     creator: Mapped["User"] = relationship(
         back_populates="created_tasks",
-        foreign_keys=[creator_id],  # Привязка к колонке creator_id
+        foreign_keys=[creator_id],
     )
 
     executor: Mapped["User"] = relationship(
         back_populates="executed_tasks",
-        foreign_keys=[executor_id],  # Привязка к колонке executor_id
+        foreign_keys=[executor_id],
     )

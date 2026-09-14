@@ -35,7 +35,7 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
-        sa.Column("completed", sa.Boolean(), nullable=False),
+        sa.Column("completed", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("creator_id", sa.BigInteger(), nullable=False),
         sa.Column("executor_id", sa.BigInteger(), nullable=True),
         sa.ForeignKeyConstraint(["creator_id"], ["users.id"], ondelete="CASCADE"),

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Self
 
 from app.db.database import async_session_maker
 from app.repositories.task_repository import TaskRepository
@@ -13,7 +14,7 @@ class IUnitOfWork(ABC):
     def __init__(self): ...
 
     @abstractmethod
-    async def __aenter__(self): ...
+    async def __aenter__(self) -> Self: ...
 
     @abstractmethod
     async def __aexit__(self, *args): ...
@@ -39,7 +40,7 @@ class UnitOfWork(IUnitOfWork):
     async def __aexit__(self, *args):
         await self.rollback()
         await self.session.close()
-        self.session = None  # спасибо за наводку Дмитрию Морозову, очищаем сессию после выхода из контекста
+        self.session = None
 
     async def commit(self):
         await self.session.commit()
