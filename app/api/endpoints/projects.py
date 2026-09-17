@@ -1,0 +1,69 @@
+from fastapi import APIRouter, Depends, Response, status
+
+from app.api.schemas.project import ProjectCreate, ProjectUpdate, ProjectFromDB
+from app.api.schemas.user import UserRead
+from app.core.security import get_user_from_token
+from app.services.project_service import ProjectService
+from app.services.user_service import UserService
+from app.utils.unitofwork import IUnitOfWork, UnitOfWork
+
+
+project_router = APIRouter(prefix="/projects", tags=["projects"])
+
+async def get_project_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> ProjectService:
+    return ProjectService(uow)
+
+
+async def get_user_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> UserService:
+    return UserService(uow)
+
+
+@project_router.get("/{project_id}", response_model=ProjectFromDB)
+async def get_project_by_id(
+    project_id: int,
+    _: str = Depends(get_user_from_token),
+    project_service: ProjectService = Depends(get_project_service),
+):
+    return await project_service.get_project("id", project_id)
+
+
+@project_router.get("/", response_model=list[ProjectFromDB])
+async def get_all_projects(
+    skip: int = 0,
+    limit: int = 10,
+    _: str = Depends(get_user_from_token),
+    project_service: ProjectService = Depends(get_project_service),
+):
+    return await project_service.get_projects(skip, limit)
+
+
+@project_router.post("/", response_model=ProjectFromDB)
+async def create_project(
+    project_data: ProjectCreate,
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: UserRead = Depends(get_user_from_token),
+):
+    return await project_service.add_project(project_data, owner_id=current_user.id)
+
+
+@project_router.patch("/{project_id}", response_model=ProjectFromDB)
+async def update_project(
+    project_id: int,
+    project_data: ProjectUpdate,
+    project_service: ProjectService = Depends(get_project_service),
+    _: UserRead = Depends(get_user_from_token),
+):
+
+    return await project_service.update_project(project_id, project_data)
+
+
+@project_router.delete("/{project_id}")
+async def delete_project(
+    project_id: int,
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: UserRead = Depends(get_user_from_token),
+):
+
+    await project_service.delete_project(project_id, current_user.id)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

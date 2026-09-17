@@ -1,16 +1,23 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from typing import Literal
+
 
 
 class TaskCreate(BaseModel):
     title: str
     description: str
+    project_id: int
+    # status: Literal["to_do", "in_progress", "review", "completed"] = "to_do"
+    priority: Literal["high", "medium", "low"] = "medium"
 
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    completed: bool | None = None
+    title: str = None
+    description: str = None
+    status: Literal["to_do", "in_progress", "review", "completed"] = "to_do"
+    priority: Literal["high", "medium", "low"] = "medium"
     executor_id: int | None = None
+    project_id: int | None = None
 
     @model_validator(mode="after")
     def has_update_fields(self):
@@ -25,6 +32,8 @@ class TaskFromDB(BaseModel):
     id: int
     title: str
     description: str
-    completed: bool = Field(default=False)
+    status: Literal["to_do", "in_progress", "review", "completed"] = "to_do"
+    priority: Literal["high", "medium", "low"] = "medium"
     creator_id: int
     executor_id: int | None
+    project_id: int | None

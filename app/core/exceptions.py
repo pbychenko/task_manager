@@ -8,3 +8,8 @@ class NotFoundError(Exception):
 
 class ForbiddenError(Exception):
     pass
+
+
+class InvalidTaskStatusError(Exception):
+    pass
+

@@ -32,10 +32,12 @@ class Repository(AbstractRepository):
 
         return result.scalars().all()
 
-    async def find_one(self, param, value):
-        result = await self.session.execute(
-            select(self.model).where(getattr(self.model, param) == value)
-        )
+    async def find_one(self, param, value, for_update=False):
+        stmt = select(self.model).where(getattr(self.model, param) == value)
+        if for_update:
+            stmt = stmt.with_for_update()
+
+        result = await self.session.execute(stmt)
 
         return result.scalar_one_or_none()
 

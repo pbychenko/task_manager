@@ -57,6 +57,16 @@ async def update_task(
 
     return await task_service.update_task(task_id, task_data)
 
+# @task_router.patch("/update_status/{task_id}", response_model=TaskFromDB)
+# async def update_task_status(
+#     task_id: int,
+#     status_data: dict,
+#     task_service: ProjectService = Depends(get_task_service),
+#     _: UserRead = Depends(get_user_from_token),
+# ):
+
+#     return await task_service.update_task_status(task_id, status_data)
+
 
 @task_router.delete("/{task_id}")
 async def delete_task(

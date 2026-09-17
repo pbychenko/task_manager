@@ -7,7 +7,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.endpoints.tasks import task_router
 from app.api.endpoints.users import user_router
-from app.core.exceptions import ForbiddenError, InvalidCredentialsError, NotFoundError
+from app.api.endpoints.projects import project_router
+from app.core.exceptions import ForbiddenError, InvalidCredentialsError, \
+    NotFoundError, InvalidTaskStatusError
 
 
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +18,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+@app.exception_handler(InvalidTaskStatusError)
+async def invalid_task_status_error_handler(_: Request, exc: InvalidTaskStatusError):
+    logger.warning("Invalid task status error")
+
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+    )
 
 @app.exception_handler(ForbiddenError)
 async def forbidden_error_handler(_: Request, exc: ForbiddenError):
@@ -66,6 +75,7 @@ async def not_found_error_handler(_: Request, exc: NotFoundError):
 
 app.include_router(user_router)
 app.include_router(task_router)
+app.include_router(project_router)
 
 
 @app.get("/health", include_in_schema=False)

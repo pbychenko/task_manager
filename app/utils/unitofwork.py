@@ -4,11 +4,14 @@ from typing import Self
 from app.db.database import async_session_maker
 from app.repositories.task_repository import TaskRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.project_repository import ProjectRepository
+
 
 
 class IUnitOfWork(ABC):
     user: UserRepository
     task: TaskRepository
+    project: ProjectRepository
 
     @abstractmethod
     def __init__(self): ...
@@ -35,6 +38,7 @@ class UnitOfWork(IUnitOfWork):
 
         self.user = UserRepository(self.session)
         self.task = TaskRepository(self.session)
+        self.project = ProjectRepository(self.session)
         return self
 
     async def __aexit__(self, *args):
