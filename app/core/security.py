@@ -8,6 +8,7 @@ from passlib.hash import pbkdf2_sha256
 
 from app.api.schemas.user import UserRead
 from app.core.config import settings
+from app.core.exceptions import ForbiddenError
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 
 
@@ -63,3 +64,20 @@ async def get_user_from_token(
             raise unauthorized
 
         return UserRead.model_validate(user)
+
+
+def require_permission(valid_roles: list[str]):
+    async def dependency(
+        user: UserRead = Depends(get_user_from_token),
+    ) -> UserRead:
+        if user.role not in valid_roles:
+            # raise HTTPException(
+            #     status_code=status.HTTP_403_FORBIDDEN,
+            #     detail="Insufficient permissions",
+            # )
+            # print('test')
+            raise ForbiddenError("You do not have needed role permission")
+
+        return user
+
+    return dependency

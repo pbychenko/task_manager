@@ -14,6 +14,11 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(unique=True, index=True)
     password: Mapped[str]
+    role: Mapped[str] = mapped_column(
+        sa.Enum("user", "manager", "admin", name="user_role"),
+        server_default="user",
+        nullable=False,
+    )
     created_tasks: Mapped[List["Task"]] = relationship(
         back_populates="creator",
         foreign_keys="[Task.creator_id]", 
@@ -35,6 +40,7 @@ class Project(Base):
     description: Mapped[str]
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     owner: Mapped["User | None"] = relationship(back_populates="owned_projects")
+
     tasks: Mapped[List["Task"]] = relationship(
         back_populates="project",
         foreign_keys="[Task.project_id]"
@@ -55,8 +61,8 @@ class Task(Base):
         sa.Enum("low", "medium", "high", name="task_priority"),
         server_default="medium",
     )
-    project_id: Mapped[int | None] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     creator_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
