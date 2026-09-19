@@ -1,4 +1,6 @@
 from app.api.schemas.project import ProjectCreate, ProjectFromDB, ProjectUpdate
+from app.api.schemas.user import UserRead
+
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.utils.unitofwork import IUnitOfWork
 
@@ -17,14 +19,23 @@ class ProjectService:
 
             return project_to_return
 
-    async def update_project(self, project_id: int, project_data: ProjectUpdate) -> ProjectFromDB:
+    async def update_project(self, project_id: int, project_data: ProjectUpdate, current_user: UserRead) -> ProjectFromDB:
         data: dict = project_data.model_dump(exclude_unset=True)
 
         async with self.uow as uow:
+            project = await uow.project.find_one("id", project_id, for_update=True)
+
+            if project is None:
+                raise NotFoundError(f"Project {project_id} not found")
+
+            if current_user.role != 'admin' and project.owner_id != current_user.id:
+                raise ForbiddenError("You do not have permission to update this project")
+
             updated_project = await uow.project.update_project("id", project_id, data)
 
             if updated_project is None:
                 raise NotFoundError(f"Project {project_id} not found")
+            
 
             project_to_return = ProjectFromDB.model_validate(updated_project)
             await uow.commit() 
@@ -46,14 +57,15 @@ class ProjectService:
 
             return ProjectFromDB.model_validate(project)
 
-    async def delete_project(self, id: int, user_id: int) -> None:
+    async def delete_project(self, id: int, current_user: UserRead) -> None:
         async with self.uow as uow:
             project = await uow.project.find_one("id", id)
 
             if not project:
                 raise NotFoundError(f"Project {id} not found")
 
-            if project.owner_id != user_id:
+            
+            if current_user.role != 'admin' and project.owner_id != current_user.id:
                 raise ForbiddenError("You do not have permission to delete this project")
 
             await uow.project.delete_one(id)

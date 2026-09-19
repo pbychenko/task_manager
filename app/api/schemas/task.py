@@ -17,7 +17,7 @@ class TaskUpdate(BaseModel):
     status: Literal["to_do", "in_progress", "review", "completed"] = "to_do"
     priority: Literal["high", "medium", "low"] = "medium"
     executor_id: int | None = None
-    project_id: int | None = None
+    # project_id: int | None = None
 
     @model_validator(mode="after")
     def has_update_fields(self):
@@ -25,6 +25,9 @@ class TaskUpdate(BaseModel):
             raise ValueError("At least one task field must be provided")
         return self
 
+
+class TaskUpdateStatus(BaseModel):
+    status: Literal["to_do", "in_progress", "review", "completed"]
 
 class TaskFromDB(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -36,4 +39,4 @@ class TaskFromDB(BaseModel):
     priority: Literal["high", "medium", "low"] = "medium"
     creator_id: int
     executor_id: int | None
-    project_id: int | None
+    project_id: int

@@ -1,4 +1,4 @@
-from app.api.schemas.user import UserCreate, UserFromDB, UserRead
+from app.api.schemas.user import UserCreate, UserFromDB, UserRead, UserRoleUpdate
 from app.core.exceptions import InvalidCredentialsError, NotFoundError
 from app.core.security import compare_hash, get_hash
 from app.utils.unitofwork import IUnitOfWork
@@ -29,17 +29,32 @@ class UserService:
 
             return UserFromDB.model_validate(user)
 
-    async def get_user(self, param: str, value: str) -> UserFromDB:
+    async def get_user(self, param: str, value: str) -> UserRead:
         async with self.uow as uow:
             user = await uow.user.find_one(param, value)
 
             if not user:
                 raise NotFoundError(f"User with {param}={value} not found")
 
-            return UserFromDB.model_validate(user)
+            return UserRead.model_validate(user)
 
-    async def get_users(self, skip, limit) -> list[UserFromDB]:
+    async def get_users(self, skip, limit) -> list[UserRead]:
         async with self.uow as uow:
             users: list = await uow.user.find_all(skip, limit)
             
-            return [UserFromDB.model_validate(user) for user in users]
+            return [UserRead.model_validate(user) for user in users]
+
+
+    async def update_user_role(self, user_id: int, role_update: UserRoleUpdate) -> UserRead:
+        data: dict = role_update.model_dump(exclude_unset=True)
+
+        async with self.uow as uow:
+            updated_user = await uow.user.update_user("id", user_id, data)
+
+            if updated_user is None:
+                raise NotFoundError(f"User {user_id} not found")
+
+            user_to_return = UserRead.model_validate(updated_user)
+            await uow.commit() 
+
+            return user_to_return

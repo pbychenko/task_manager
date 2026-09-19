@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Response, status
 
-from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate
+from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate, TaskUpdateStatus
 from app.api.schemas.user import UserRead
-from app.core.security import get_user_from_token
+from app.core.security import get_user_from_token, require_permission
 from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
@@ -42,9 +42,9 @@ async def get_all_tasks(
 async def create_task(
     task_data: TaskCreate,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(get_user_from_token),
+    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
 ):
-    return await task_service.add_task(task_data, creator_id=current_user.id)
+    return await task_service.add_task(task_data, current_user)
 
 
 @task_router.patch("/{task_id}", response_model=TaskFromDB)
@@ -52,10 +52,20 @@ async def update_task(
     task_id: int,
     task_data: TaskUpdate,
     task_service: TaskService = Depends(get_task_service),
-    _: UserRead = Depends(get_user_from_token),
+    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
 ):
 
-    return await task_service.update_task(task_id, task_data)
+    return await task_service.update_task(task_id, task_data, current_user)
+
+@task_router.patch("/{task_id}/status", response_model=TaskFromDB)
+async def update_task_status(
+    task_id: int,
+    task_data: TaskUpdateStatus,
+    task_service: TaskService = Depends(get_task_service),
+    current_user: UserRead = Depends(get_user_from_token),
+):
+
+    return await task_service.update_task_status(task_id, task_data, current_user)
 
 # @task_router.patch("/update_status/{task_id}", response_model=TaskFromDB)
 # async def update_task_status(
@@ -72,9 +82,9 @@ async def update_task(
 async def delete_task(
     task_id: int,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(get_user_from_token),
+    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
 ):
 
-    await task_service.delete_task(task_id, current_user.id)
+    await task_service.delete_task(task_id, current_user)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
