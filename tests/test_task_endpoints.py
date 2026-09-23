@@ -1,0 +1,298 @@
+from urllib import response
+
+from httpx import AsyncClient
+
+
+task_data = {"title": "new task", "description": "new_task_description"}
+
+async def get_second_manager_headers(async_client: AsyncClient, admin_headers: dict) -> dict:
+    second_manager = {"username": "manager2", "password": "manager_password2"}
+    response = await async_client.post("/users/register/", json=second_manager)
+    second_manager_id = response.json()["id"]
+    response = await async_client.patch(
+        f"/users/{second_manager_id}/role",
+        json={"role": "manager"},
+        headers=admin_headers,
+    )
+
+    second_manager_login = await async_client.post("/users/login/", json=second_manager)
+    second_manager_headers = {
+        "Authorization": f"Bearer {second_manager_login.json()['access_token']}"
+    }
+
+    return second_manager_headers
+
+class TestTaskCreate:
+    async def test_create_task(self, task: dict):
+        assert task["title"] == task_data["title"]
+        assert task["description"] == task_data["description"]
+        assert task["status"] == "to_do"
+        assert task["priority"] == "medium"
+        assert task["creator_id"] is not None
+
+    async def test_create_task_negative_cases(self, async_client: AsyncClient, regular_user_headers: dict, task: dict):
+        # проверка создания задачи без авторизации
+        response = await async_client.post("/tasks/", json=task_data)
+        body = response.json()
+
+        assert response.status_code == 401
+        assert body["detail"] == "Not authenticated"
+
+        # проверка создания задачи обычным пользователем без роли "manager"
+        response = await async_client.post("/tasks/", json={ **task_data, "project_id": task["project_id"] }, headers=regular_user_headers)
+
+        assert response.json()["detail"] == "You do not have needed role permission"
+        assert response.status_code == 403
+
+
+class TestUpdateTask:
+    async def test_update_task_positive_case(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict
+    ):
+        new_task_data = {
+            "title": "new task1",
+            "description": "new_task_description1",
+            "priority": "high",
+        }
+        task_id = task["id"]
+
+        response = await async_client.patch(
+            f"/tasks/{task_id}", json=new_task_data, headers=manager_headers
+        )
+
+        assert response.status_code == 200
+
+        updated_task = response.json()
+
+        assert updated_task["title"] == new_task_data["title"]
+        assert updated_task["description"] == new_task_data["description"]
+        assert updated_task["priority"] == new_task_data["priority"]
+
+    async def test_update_task_negative_cases(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict, admin_headers
+    ):
+        new_task_data = {
+            "title": "new task1",
+            "description": "new_task_description1",
+            "priority": "high",
+        }
+        task_id = task["id"]
+
+        # проверка редактирования несуществующей задачи
+        response = await async_client.patch(
+            f"/tasks/{task_id + 1}", json=new_task_data, headers=manager_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == f"Task {task_id + 1} not found"
+
+        # проверка редактирования задачи другим менеджером
+        second_manager_headers = await get_second_manager_headers(async_client, admin_headers)
+        response = await async_client.patch(
+            f"/tasks/{task_id}", json=new_task_data, headers=second_manager_headers
+        )
+
+        assert response.json()["detail"] == "You do not have permission to update this task"
+        assert response.status_code == 403
+
+        # проверка редактирования без авторизации
+        response = await async_client.patch("/tasks/{task_id}", json=new_task_data)
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Not authenticated"
+
+class TestUpdateTaskStatus:
+    async def test_update_task_status_by_manager(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict, regular_user_headers: dict, regular_user: dict
+    ):
+        valid_status = {
+            "status": "in_progress"
+        }
+
+        not_valid_status = {
+            "status": "review"
+        }
+
+        task_id = task["id"]
+
+        response = await async_client.patch(
+            f"/tasks/{task_id}/status", json=not_valid_status, headers=manager_headers
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == f"Invalid status transition from {task['status']} to {not_valid_status['status']}"
+
+        response = await async_client.patch(
+            f"/tasks/{task_id}/status", json=valid_status, headers=manager_headers
+        )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == valid_status["status"]
+
+    async def test_update_task_status_by_regular_user(
+            self, async_client: AsyncClient, manager_headers: dict, task: dict, regular_user_headers: dict, regular_user: dict
+        ):
+            valid_status = {
+                "status": "in_progress"
+            }
+    
+            task_id = task["id"]
+    
+            response = await async_client.patch(
+                f"/tasks/{task_id}/status", json=valid_status, headers=regular_user_headers
+            )
+    
+            assert response.status_code == 403
+            assert response.json()["detail"] == "You do not have permission to update the status of this task"
+    
+            response = await async_client.patch(
+                f"/tasks/{task_id}", json={"executor_id": regular_user["id"]}, headers=manager_headers
+            )
+
+            response = await async_client.patch(
+                f"/tasks/{task_id}/status", json=valid_status, headers=regular_user_headers
+            )
+    
+            assert response.status_code == 200
+            assert response.json()["status"] == valid_status["status"]
+
+    async def test_update_task_status_other_negative_cases(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict, admin_headers
+    ):
+        valid_status = {
+            "status": "in_progress"
+        }
+        task_id = task["id"]
+
+        # проверка редактирования несуществующей задачи
+        response = await async_client.patch(
+            f"/tasks/{task_id + 1}/status", json=valid_status, headers=manager_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == f"Task {task_id + 1} not found"
+
+        # проверка редактирования задачи другим менеджером
+        second_manager_headers = await get_second_manager_headers(async_client, admin_headers)
+        response = await async_client.patch(
+            f"/tasks/{task_id}/status", json=valid_status, headers=second_manager_headers
+        )
+
+        assert response.json()["detail"] == "You do not have permission to update the status of this task"
+        assert response.status_code == 403
+
+        # проверка редактирования без авторизации
+        response = await async_client.patch("/tasks/{task_id}/status", json=valid_status)
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Not authenticated"
+
+
+class TestDeleteTask:
+    async def test_delete_task_positive_case(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict
+    ):
+        task_id = task["id"]
+        response = await async_client.delete(f"/tasks/{task_id}", headers=manager_headers)
+
+        assert response.status_code == 204
+
+    async def test_delete_task_negative_cases(
+        self, async_client: AsyncClient, manager_headers: dict, task: dict, admin_headers: dict
+    ):
+        task_id = task["id"]
+
+        # проверка удаления несуществующей задачи
+        response = await async_client.delete(
+            f"/tasks/{task_id + 1}", headers=manager_headers
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == f"Task {task_id + 1} not found"
+
+        # проверка удаления задачи другим юзером
+        second_manager_headers = await get_second_manager_headers(async_client, admin_headers)
+        response = await async_client.delete(
+            f"/tasks/{task_id}", headers=second_manager_headers
+        )
+
+        assert response.status_code == 403
+        assert (
+            response.json()["detail"]
+            == "You do not have permission to delete this task"
+        )
+
+        # проверка удаления задачи без авторизации
+        response = await async_client.delete(
+            f"/tasks/{task_id}",
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Not authenticated"
+
+
+class TestGetTask:
+    async def test_get_tasks_positive(
+        self, async_client: AsyncClient, regular_user_headers: dict, task: dict, manager_headers: dict
+    ):
+        task_id = task["id"]
+        creator_id = task["creator_id"]
+        new_task_data = {"title": "new task1", "description": "new_task_description1"}
+
+        response = await async_client.post(
+            "/tasks/", json={ **new_task_data, "project_id": task["project_id"] }, headers=manager_headers
+        )
+
+        assert response.status_code == 200
+
+        
+        new_task_id = response.json()["id"]
+        response = await async_client.get("/tasks/", headers=regular_user_headers)
+
+        assert response.status_code == 200
+
+        tasks = response.json()
+        default_data = {
+            "priority": "medium",
+            "creator_id": creator_id,
+            "executor_id": None,
+            "status": "to_do",
+            "project_id": task["project_id"]
+        }
+        expected_tasks = [
+            {"id": task_id, **task_data, **default_data},
+            {"id": new_task_id, **new_task_data, **default_data},
+        ]
+
+        assert tasks == expected_tasks
+
+        response = await async_client.get(f"/tasks/{new_task_id}", headers=regular_user_headers)
+        new_task = response.json()
+
+        assert new_task == {"id": new_task_id, **new_task_data, **default_data}
+
+    async def test_get_tasks_negative_cases(
+        self, async_client: AsyncClient, regular_user_headers: dict, task: dict
+    ):
+        task_id = task["id"]
+
+        # проверка посмотреть несуществующую задачу
+        response = await async_client.get(f"/tasks/{task_id + 1}", headers=regular_user_headers)
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == f"Task with id={task_id + 1} not found"
+
+        # проверка посмотреть задачу без авторизации
+        response = await async_client.get(
+            f"/tasks/{task_id}",
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Not authenticated"
+
+        response = await async_client.get(
+            "/tasks/",
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Not authenticated"

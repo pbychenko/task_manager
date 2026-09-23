@@ -75,26 +75,77 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 TEST_USER = {"username": "user1", "password": "password1"}
-task_data = {"title": "new task", "description": "new_task_description"}
 
+from app.core.security import get_hash
+from app.db.models import User
 
 @pytest_asyncio.fixture
-async def registered_user(async_client: AsyncClient) -> dict:
-    response = await async_client.post("/users/register/", json=TEST_USER)
-    assert response.status_code == 201
+async def user_factory(db_session: AsyncSession):
+    async def create_user(
+        username: str,
+        password: str,
+        role: str
+    ) -> dict:
+        user = User(
+            username=username,
+            password=get_hash(password),
+            role=role,
+        )
 
-    user = response.json()
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+
+        return {
+            "id": user.id,
+            "username": username,
+            "password": password,
+            "role": role,
+        }
+
+    return create_user
+
+@pytest_asyncio.fixture
+async def admin_user(user_factory) -> dict:
+    return await user_factory(
+        username="admin",
+        password="admin-password",
+        role="admin",
+    )
+
+@pytest_asyncio.fixture
+async def manager_user(user_factory) -> dict:
+    return await user_factory(
+        username="manager",
+        password="manager-password",
+        role="manager",
+    )
+
+@pytest_asyncio.fixture
+async def regular_user(user_factory) -> dict:
+    return await user_factory(
+        username="regular",
+        password="regular-password",
+        role="user",
+    )
+
+# @pytest_asyncio.fixture
+# async def registered_user(async_client: AsyncClient) -> dict:
+#     response = await async_client.post("/users/register/", json=TEST_USER)
+#     assert response.status_code == 201
+
+#     user = response.json()
     
-    return {**user, "password": TEST_USER["password"]}
+#     return {**user, "password": TEST_USER["password"]}
 
 
 @pytest_asyncio.fixture
-async def auth_headers(async_client: AsyncClient, registered_user: dict) -> dict:
+async def regular_user_headers(async_client: AsyncClient, regular_user: dict) -> dict:
     response = await async_client.post(
         "/users/login/",
         json={
-            "username": registered_user["username"],
-            "password": registered_user["password"],
+            "username": regular_user["username"],
+            "password": regular_user["password"],
         },
     )
     assert response.status_code == 200
@@ -105,8 +156,52 @@ async def auth_headers(async_client: AsyncClient, registered_user: dict) -> dict
 
 
 @pytest_asyncio.fixture
-async def task(async_client: AsyncClient, auth_headers: dict) -> dict:
-    response = await async_client.post("/tasks/", json=task_data, headers=auth_headers)
+async def admin_headers(async_client: AsyncClient, admin_user: dict) -> dict:
+    response = await async_client.post(
+        "/users/login/",
+        json={
+            "username": admin_user["username"],
+            "password": admin_user["password"],
+        },
+    )
+    assert response.status_code == 200
+
+    token = response.json()["access_token"]
+
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest_asyncio.fixture
+async def manager_headers(async_client: AsyncClient, manager_user: dict) -> dict:
+    response = await async_client.post(
+        "/users/login/",
+        json={
+            "username": manager_user["username"],
+            "password": manager_user["password"],
+        },
+    )
+    assert response.status_code == 200
+
+    token = response.json()["access_token"]
+
+    return {"Authorization": f"Bearer {token}"}
+
+
+project_data = {"name": "new project", "description": "new_project_description"}
+
+@pytest_asyncio.fixture
+async def project(async_client: AsyncClient, manager_headers: dict) -> dict:
+    response = await async_client.post("/projects/", json=project_data, headers=manager_headers)
+
+    assert response.status_code == 200
+
+    return response.json()
+
+
+task_data = {"title": "new task", "description": "new_task_description"}
+
+@pytest_asyncio.fixture
+async def task(async_client: AsyncClient, manager_headers: dict, project: dict) -> dict:
+    response = await async_client.post("/tasks/", json={ **task_data, "project_id": project["id"] }, headers=manager_headers)
 
     assert response.status_code == 200
 
