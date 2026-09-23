@@ -122,6 +122,14 @@ async def manager_user(user_factory) -> dict:
     )
 
 @pytest_asyncio.fixture
+async def second_manager_user(user_factory) -> dict:
+    return await user_factory(
+        username="manager2",
+        password="manager2-password",
+        role="manager",
+    )
+
+@pytest_asyncio.fixture
 async def regular_user(user_factory) -> dict:
     return await user_factory(
         username="regular",
@@ -177,6 +185,21 @@ async def manager_headers(async_client: AsyncClient, manager_user: dict) -> dict
         json={
             "username": manager_user["username"],
             "password": manager_user["password"],
+        },
+    )
+    assert response.status_code == 200
+
+    token = response.json()["access_token"]
+
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest_asyncio.fixture
+async def second_manager_headers(async_client: AsyncClient, second_manager_user: dict) -> dict:
+    response = await async_client.post(
+        "/users/login/",
+        json={
+            "username": second_manager_user["username"],
+            "password": second_manager_user["password"],
         },
     )
     assert response.status_code == 200

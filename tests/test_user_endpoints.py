@@ -5,12 +5,13 @@ class TestRegister:
     async def test_register_returns_created_user(self, async_client: AsyncClient):
         response = await async_client.post(
             "/users/register/",
-            json={"username": "bob", "password": "bobs-password"},
+            json={"username": "bob", "password": "bobs-password", "role": "admin"},
         )
 
         assert response.status_code == 201
         body = response.json()
         assert body["username"] == "bob"
+        assert body["role"] == "user"
         assert "id" in body
         assert "password" not in body
 

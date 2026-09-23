@@ -3,23 +3,6 @@ from httpx import AsyncClient
 
 project_data = {"name": "new project", "description": "new_project_description"}
 
-async def get_second_manager_headers(async_client: AsyncClient, admin_headers: dict) -> dict:
-    second_manager = {"username": "manager2", "password": "manager_password2"}
-    response = await async_client.post("/users/register/", json=second_manager)
-    second_manager_id = response.json()["id"]
-    response = await async_client.patch(
-        f"/users/{second_manager_id}/role",
-        json={"role": "manager"},
-        headers=admin_headers,
-    )
-
-    second_manager_login = await async_client.post("/users/login/", json=second_manager)
-    second_manager_headers = {
-        "Authorization": f"Bearer {second_manager_login.json()['access_token']}"
-    }
-
-    return second_manager_headers
-
 class TestProjectCreate:
     async def test_create_project(self, project: dict):
         assert project["name"] == project_data["name"]
@@ -61,7 +44,7 @@ class TestUpdateProject:
         assert updated_project["description"] == new_project_data["description"]
 
     async def test_update_project_negative_cases(
-        self, async_client: AsyncClient, manager_headers: dict, project: dict, admin_headers: dict
+        self, async_client: AsyncClient, manager_headers: dict, project: dict, second_manager_headers:dict
     ):
         new_project_data = {
             "name": "new project1",
@@ -77,7 +60,6 @@ class TestUpdateProject:
         assert response.status_code == 404
         assert response.json()["detail"] == f"Project {project_id + 1} not found"
 
-        second_manager_headers = await get_second_manager_headers(async_client, admin_headers)
         new_project_data2 = {
             "name": "new project2",
             "description": "new_project_description2"
@@ -94,7 +76,7 @@ class TestUpdateProject:
         
 
         # проверка редактирования без авторизации
-        response = await async_client.patch("/projects/{project_id}", json=new_project_data)
+        response = await async_client.patch(f"/projects/{project_id}", json=new_project_data)
 
         assert response.status_code == 401
         assert response.json()["detail"] == "Not authenticated"
@@ -110,7 +92,7 @@ class TestDeleteProject:
         assert response.status_code == 204
 
     async def test_delete_project_negative_cases(
-        self, async_client: AsyncClient, manager_headers: dict, project: dict, admin_headers: dict
+        self, async_client: AsyncClient, manager_headers: dict, project: dict, second_manager_headers:dict
     ):
         project_id = project["id"]
 
@@ -123,7 +105,6 @@ class TestDeleteProject:
         assert response.json()["detail"] == f"Project {project_id + 1} not found"
 
         # проверка удаления проекта другим менеджером
-        second_manager_headers = await get_second_manager_headers(async_client, admin_headers)
         response = await async_client.delete(
             f"/projects/{project_id}", headers=second_manager_headers
         )
@@ -171,7 +152,10 @@ class TestGetProject:
             {"id": project_id_2, **new_project_data, **default_data},
         ]
 
-        assert projects == expected_projects
+        assert sorted(projects, key=lambda item: item["id"]) == sorted(
+            expected_projects,
+            key=lambda item: item["id"]
+        )
 
         response = await async_client.get(f"/projects/{project_id_2}", headers=manager_headers)
         project = response.json()
