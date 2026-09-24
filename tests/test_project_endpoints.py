@@ -43,6 +43,28 @@ class TestUpdateProject:
         assert updated_project["name"] == new_project_data["name"]
         assert updated_project["description"] == new_project_data["description"]
 
+    async def test_admin_can_update_project_owned_by_manager(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        project: dict,
+    ):
+        new_project_data = {
+            "name": "project updated by admin",
+            "description": "admin can update projects owned by managers",
+        }
+
+        response = await async_client.patch(
+            f"/projects/{project['id']}",
+            json=new_project_data,
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["name"] == new_project_data["name"]
+        assert response.json()["description"] == new_project_data["description"]
+        assert response.json()["owner_id"] == project["owner_id"]
+
     async def test_update_project_negative_cases(
         self, async_client: AsyncClient, manager_headers: dict, project: dict, second_manager_headers:dict
     ):
@@ -88,6 +110,19 @@ class TestDeleteProject:
     ):
         project_id = project["id"]
         response = await async_client.delete(f"/projects/{project_id}", headers=manager_headers)
+
+        assert response.status_code == 204
+
+    async def test_admin_can_delete_project_owned_by_manager(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        project: dict,
+    ):
+        response = await async_client.delete(
+            f"/projects/{project['id']}",
+            headers=admin_headers,
+        )
 
         assert response.status_code == 204
 

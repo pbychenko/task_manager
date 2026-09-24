@@ -27,6 +27,41 @@ class TestTaskCreate:
         assert response.json()["detail"] == "You do not have needed role permission"
         assert response.status_code == 403
 
+    async def test_admin_can_create_task_in_manager_project(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        admin_user: dict,
+        project: dict,
+    ):
+        response = await async_client.post(
+            "/tasks/",
+            json={**task_data, "project_id": project["id"]},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["project_id"] == project["id"]
+        assert response.json()["creator_id"] == admin_user["id"]
+
+    async def test_manager_cannot_create_task_in_another_managers_project(
+        self,
+        async_client: AsyncClient,
+        second_manager_headers: dict,
+        project: dict,
+    ):
+        response = await async_client.post(
+            "/tasks/",
+            json={**task_data, "project_id": project["id"]},
+            headers=second_manager_headers,
+        )
+
+        assert response.status_code == 403
+        assert (
+            response.json()["detail"]
+            == "You do not have permission to create a task in this project"
+        )
+
 
 class TestUpdateTask:
     async def test_update_task_positive_case(
@@ -50,6 +85,29 @@ class TestUpdateTask:
         assert updated_task["title"] == new_task_data["title"]
         assert updated_task["description"] == new_task_data["description"]
         assert updated_task["priority"] == new_task_data["priority"]
+
+    async def test_admin_can_update_task_in_manager_project(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        task: dict,
+    ):
+        new_task_data = {
+            "title": "task updated by admin",
+            "description": "admin can update tasks in manager projects",
+            "priority": "high",
+        }
+
+        response = await async_client.patch(
+            f"/tasks/{task['id']}",
+            json=new_task_data,
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["title"] == new_task_data["title"]
+        assert response.json()["description"] == new_task_data["description"]
+        assert response.json()["priority"] == new_task_data["priority"]
 
     async def test_update_task_negative_cases(
         self, async_client: AsyncClient, manager_headers: dict, task: dict, second_manager_headers: dict
@@ -110,6 +168,21 @@ class TestUpdateTaskStatus:
 
         assert response.status_code == 200
         assert response.json()["status"] == valid_status["status"]
+
+    async def test_admin_can_update_status_of_task_in_manager_project(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        task: dict,
+    ):
+        response = await async_client.patch(
+            f"/tasks/{task['id']}/status",
+            json={"status": "in_progress"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "in_progress"
 
     async def test_update_task_status_by_regular_user(
             self, async_client: AsyncClient, manager_headers: dict, task: dict, regular_user_headers: dict, regular_user: dict
@@ -178,6 +251,19 @@ class TestDeleteTask:
     ):
         task_id = task["id"]
         response = await async_client.delete(f"/tasks/{task_id}", headers=manager_headers)
+
+        assert response.status_code == 204
+
+    async def test_admin_can_delete_task_in_manager_project(
+        self,
+        async_client: AsyncClient,
+        admin_headers: dict,
+        task: dict,
+    ):
+        response = await async_client.delete(
+            f"/tasks/{task['id']}",
+            headers=admin_headers,
+        )
 
         assert response.status_code == 204
 
