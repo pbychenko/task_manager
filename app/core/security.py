@@ -10,7 +10,7 @@ from app.api.schemas.user import UserRead
 from app.core.config import settings
 from app.core.exceptions import ForbiddenError
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
-
+from app.core.roles import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/")
 
@@ -66,13 +66,9 @@ async def get_user_from_token(
         return UserRead.model_validate(user)
 
 
-def require_permission(valid_roles: list[str]):
-    async def dependency(
-        user: UserRead = Depends(get_user_from_token),
-    ) -> UserRead:
-        if user.role not in valid_roles:
+def require_role(min_role: Role):
+    async def dependency(user: UserRead = Depends(get_user_from_token)) -> UserRead:
+        if Role[user.role.upper()] < min_role:
             raise ForbiddenError("You do not have needed role permission")
-
         return user
-
     return dependency

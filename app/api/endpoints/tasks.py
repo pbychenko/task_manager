@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate, TaskUpdateStatus
 from app.api.schemas.user import UserRead
-from app.core.security import get_user_from_token, require_permission
+from app.core.security import get_user_from_token, require_role
 from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
+from app.core.roles import Role
 
 
 task_router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -42,7 +43,7 @@ async def get_all_tasks(
 async def create_task(
     task_data: TaskCreate,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
+    current_user: UserRead = Depends(require_role(Role.MANAGER)),
 ):
     return await task_service.add_task(task_data, current_user)
 
@@ -52,7 +53,7 @@ async def update_task(
     task_id: int,
     task_data: TaskUpdate,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
+    current_user: UserRead = Depends(require_role(Role.MANAGER)),
 ):
 
     return await task_service.update_task(task_id, task_data, current_user)
@@ -67,22 +68,11 @@ async def update_task_status(
 
     return await task_service.update_task_status(task_id, task_data, current_user)
 
-# @task_router.patch("/update_status/{task_id}", response_model=TaskFromDB)
-# async def update_task_status(
-#     task_id: int,
-#     status_data: dict,
-#     task_service: ProjectService = Depends(get_task_service),
-#     _: UserRead = Depends(get_user_from_token),
-# ):
-
-#     return await task_service.update_task_status(task_id, status_data)
-
-
 @task_router.delete("/{task_id}")
 async def delete_task(
     task_id: int,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_permission(["manager", "admin"])),
+    current_user: UserRead = Depends(require_role(Role.MANAGER)),
 ):
 
     await task_service.delete_task(task_id, current_user)
