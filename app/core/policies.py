@@ -1,11 +1,12 @@
 from app.db.models import Project, Task
 from app.api.schemas.user import UserRead
-# from app.core.roles import Role
 
 class ProjectPolicy:
     @staticmethod
     def can_manage(user: UserRead, project: Project) -> bool:
-        return user.role == "admin" or project.owner_id == user.id
+        return user.role == "admin" or (
+            user.role == "manager" and project.owner_id == user.id
+        )
 
 
 class TaskPolicy:
@@ -17,6 +18,7 @@ class TaskPolicy:
     def can_transition_status(user: UserRead, task: Task, project: Project) -> bool:
         if user.role == 'admin':
             return True
+        
         if user.role == 'manager':
             return project.owner_id == user.id
         

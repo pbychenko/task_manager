@@ -6,7 +6,7 @@ from app.core.security import get_user_from_token, require_role
 from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
-from app.core.roles import Role
+from app.core.role_levels import RoleLevel
 
 
 task_router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -43,7 +43,7 @@ async def get_all_tasks(
 async def create_task(
     task_data: TaskCreate,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
     return await task_service.add_task(task_data, current_user)
 
@@ -53,7 +53,7 @@ async def update_task(
     task_id: int,
     task_data: TaskUpdate,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
 
     return await task_service.update_task(task_id, task_data, current_user)
@@ -72,7 +72,7 @@ async def update_task_status(
 async def delete_task(
     task_id: int,
     task_service: TaskService = Depends(get_task_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
 
     await task_service.delete_task(task_id, current_user)

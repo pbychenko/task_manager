@@ -6,7 +6,7 @@ from app.core.security import require_role
 from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
-from app.core.roles import Role
+from app.core.role_levels import RoleLevel
 
 
 project_router = APIRouter(prefix="/projects", tags=["projects"])
@@ -22,7 +22,7 @@ async def get_user_service(uow: IUnitOfWork = Depends(UnitOfWork)) -> UserServic
 @project_router.get("/{project_id}", response_model=ProjectFromDB)
 async def get_project_by_id(
     project_id: int,
-    _: str = Depends(require_role(Role.MANAGER)),
+    _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
     project_service: ProjectService = Depends(get_project_service),
 ):
     return await project_service.get_project("id", project_id)
@@ -32,7 +32,7 @@ async def get_project_by_id(
 async def get_all_projects(
     skip: int = 0,
     limit: int = 10,
-    _: str = Depends(require_role(Role.MANAGER)),
+    _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
     project_service: ProjectService = Depends(get_project_service),
 ):
     return await project_service.get_projects(skip, limit)
@@ -42,7 +42,7 @@ async def get_all_projects(
 async def create_project(
     project_data: ProjectCreate,
     project_service: ProjectService = Depends(get_project_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
     return await project_service.add_project(project_data, owner_id=current_user.id)
 
@@ -52,7 +52,7 @@ async def update_project(
     project_id: int,
     project_data: ProjectUpdate,
     project_service: ProjectService = Depends(get_project_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
 
     return await project_service.update_project(project_id, project_data, current_user=current_user)
@@ -62,7 +62,7 @@ async def update_project(
 async def delete_project(
     project_id: int,
     project_service: ProjectService = Depends(get_project_service),
-    current_user: UserRead = Depends(require_role(Role.MANAGER)),
+    current_user: UserRead = Depends(require_role(RoleLevel.MANAGER)),
 ):
 
     await project_service.delete_project(project_id, current_user)

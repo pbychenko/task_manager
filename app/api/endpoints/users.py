@@ -4,7 +4,7 @@ from app.api.schemas.user import UserCreate, UserRead, UserRoleUpdate
 from app.core.security import create_jwt_token, require_role
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
-from app.core.roles import Role
+from app.core.role_levels import RoleLevel
 
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
@@ -36,7 +36,7 @@ async def login(
 @user_router.get("/{user_id}/", response_model=UserRead)
 async def get_user_by_id(
     user_id: int,
-    _: UserRead = Depends(require_role(Role.MANAGER)),
+    _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
     user_service: UserService = Depends(get_user_service),
 ):    
     return await user_service.get_user("id", user_id)
@@ -46,7 +46,7 @@ async def get_user_by_id(
 async def get_users(
     skip: int = 0,
     limit: int = 10,
-    _: UserRead = Depends(require_role(Role.MANAGER)),
+    _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
     # _: str = Depends(get_user_from_token),
     user_service: UserService = Depends(get_user_service),
 ):
@@ -56,7 +56,7 @@ async def get_users(
 async def update_user_role(
     user_id: int,
     role_update: UserRoleUpdate,
-    _: UserRead = Depends(require_role(Role.ADMIN)),
+    _: UserRead = Depends(require_role(RoleLevel.ADMIN)),
     user_service: UserService = Depends(get_user_service),
 ):
     return await user_service.update_user_role(user_id, role_update)
