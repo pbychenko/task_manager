@@ -2,6 +2,7 @@ from app.api.schemas.task import TaskCreate, TaskFromDB, TaskUpdate, TaskUpdateS
 from app.api.schemas.user import UserRead
 from app.core.exceptions import ForbiddenError, InvalidTaskStatusError, NotFoundError
 from app.utils.unitofwork import IUnitOfWork
+from app.core.policies import TaskPolicy
 
 def get_next_status(current_status: str) -> list[str]:
     status_transitions = {
@@ -12,11 +13,6 @@ def get_next_status(current_status: str) -> list[str]:
     }
     
     return status_transitions.get(current_status, [])
-
-# def is_valid_priority(priority: str) -> bool:
-#     priorities = ["low","medium", "high"]
-
-#     return priority in priorities
 
 class TaskService:
     def __init__(self, uow: IUnitOfWork):
@@ -32,7 +28,7 @@ class TaskService:
             if not project:
                 raise NotFoundError(f"Project {task.project_id} not found")
 
-            if current_user.role != 'admin' and current_user.id != project.owner_id:
+            if not TaskPolicy.can_manage(current_user, project):
                 raise ForbiddenError("You do not have permission to create a task in this project")
 
             task_from_db = await uow.task.add_one(task_dict)
@@ -52,18 +48,8 @@ class TaskService:
 
             project = await uow.project.find_one("id", task.project_id)
 
-            if current_user.role != 'admin' and project.owner_id != current_user.id:
+            if not TaskPolicy.can_manage(current_user, project):
                 raise ForbiddenError("You do not have permission to update this task")
-
-            # if "project_id" in data:
-            #     project_id = data["project_id"]
-
-            #     if project_id is not None:
-            #         project = await uow.project.find_one("id", project_id)
-
-            #         if project is None:
-            #             raise NotFoundError(
-            #                 f"Project {project_id} not found")
 
             if "status" in data:
                 new_status = data["status"]
@@ -92,18 +78,10 @@ class TaskService:
             if task is None:
                 raise NotFoundError(f"Task {task_id} not found")
 
-            if current_user.role =='admin':
-                pass
-
-            elif current_user.role == 'manager':
-                project = await uow.project.find_one("id", task.project_id)                
-               
-                if project.owner_id != current_user.id:
-                    raise ForbiddenError("You do not have permission to update the status of this task")
-
-            elif task.executor_id != current_user.id:
+            project = await uow.project.find_one("id", task.project_id)
+            if not TaskPolicy.can_transition_status(current_user, task, project):
                 raise ForbiddenError("You do not have permission to update the status of this task")
-
+            
             possible_statuses = get_next_status(task.status)
 
             new_status = data.get("status")
@@ -119,58 +97,6 @@ class TaskService:
             await uow.commit()
 
             return task_to_return
-
-    # async def update_task_status(self, task_id: int, status_data: dict) -> TaskFromDB:
-    #     # status = status_data.get("status")
-    #     # if  status_data.keys() != {"status"}:
-    #     #     raise ValueError("Only 'status' field can be updated")
-
-    #     status = status_data["status"] 
-
-    #     async with self.uow as uow:
-    #         task = await self.get_task("id", task_id)
-            
-    #         if not task:
-    #             raise NotFoundError(f"Task {task_id} not found")
-    
-    #         old_status = task.status
-    #         possible_statuses = get_next_status(old_status)
-            
-    #         if status not in possible_statuses:
-    #             raise ValueError(f"Invalid status transition from {old_status} to {status}")
-            
-    #         updated_task = await uow.task.update_task("id", task_id, {"status": status})
-
-    #         if updated_task is None:
-    #             raise NotFoundError(f"Task {task_id} not found")
-
-    #         task_to_return = TaskFromDB.model_validate(updated_task)
-    #         await uow.commit()  # это самый важный кусок кода, до этого коммита можно записать данные в 50 моделей, но если кто-то вылетит с ошибкой, все изменения откатятся! Если код дошёл сюда, то все прошло окей!
-
-    #         return task_to_return
-
-    # async def update_task_priority(self, task_id: int, priority: str) -> TaskFromDB:  
-    #         async with self.uow as uow:
-    #             task = await self.get_task("id", task_id)
-                
-    #             if not task:
-    #                 raise NotFoundError(f"Task {task_id} not found")
-        
-    #             old_priority = task.priority
-    #             possible_priorities = get_next_priority(old_priority)
-                
-    #             if priority not in possible_priorities:
-    #                 raise ValueError(f"Invalid priority transition from {old_priority} to {priority}")
-                
-    #             updated_task = await uow.task.update_task("id", task_id, {"priority": priority})
-    
-    #             if updated_task is None:
-    #                 raise NotFoundError(f"Task {task_id} not found")
-    
-    #             task_to_return = TaskFromDB.model_validate(updated_task)
-    #             await uow.commit()  # это самый важный кусок кода, до этого коммита можно записать данные в 50 моделей, но если кто-то вылетит с ошибкой, все изменения откатятся! Если код дошёл сюда, то все прошло окей!
-    
-    #             return task_to_return
 
     async def get_tasks(self, skip, limit) -> list[TaskFromDB]:
         async with self.uow as uow:
@@ -196,7 +122,7 @@ class TaskService:
 
             project = await uow.project.find_one("id", task.project_id)
 
-            if current_user.role != 'admin' and project.owner_id != current_user.id:
+            if not TaskPolicy.can_manage(current_user, project):
                 raise ForbiddenError("You do not have permission to delete this task")
 
             await uow.task.delete_one(id)

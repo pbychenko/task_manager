@@ -71,11 +71,6 @@ def require_permission(valid_roles: list[str]):
         user: UserRead = Depends(get_user_from_token),
     ) -> UserRead:
         if user.role not in valid_roles:
-            # raise HTTPException(
-            #     status_code=status.HTTP_403_FORBIDDEN,
-            #     detail="Insufficient permissions",
-            # )
-            # print('test')
             raise ForbiddenError("You do not have needed role permission")
 
         return user

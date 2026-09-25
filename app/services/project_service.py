@@ -3,6 +3,7 @@ from app.api.schemas.user import UserRead
 
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.utils.unitofwork import IUnitOfWork
+from app.core.policies import ProjectPolicy
 
 class ProjectService:
     def __init__(self, uow: IUnitOfWork):
@@ -26,9 +27,9 @@ class ProjectService:
             project = await uow.project.find_one("id", project_id, for_update=True)
 
             if project is None:
-                raise NotFoundError(f"Project {project_id} not found")
+                raise NotFoundError(f"Project {project_id} not found")      
 
-            if current_user.role != 'admin' and project.owner_id != current_user.id:
+            if not ProjectPolicy.can_manage(current_user, project):
                 raise ForbiddenError("You do not have permission to update this project")
 
             updated_project = await uow.project.update_project("id", project_id, data)
@@ -65,7 +66,7 @@ class ProjectService:
                 raise NotFoundError(f"Project {id} not found")
 
             
-            if current_user.role != 'admin' and project.owner_id != current_user.id:
+            if not ProjectPolicy.can_manage(current_user, project):
                 raise ForbiddenError("You do not have permission to delete this project")
 
             await uow.project.delete_one(id)

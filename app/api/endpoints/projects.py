@@ -41,7 +41,6 @@ async def get_all_projects(
 async def create_project(
     project_data: ProjectCreate,
     project_service: ProjectService = Depends(get_project_service),
-    # current_user: UserRead = Depends(get_user_from_token),
     current_user: UserRead = Depends(require_permission(["manager", "admin"])),
 ):
     return await project_service.add_project(project_data, owner_id=current_user.id)
