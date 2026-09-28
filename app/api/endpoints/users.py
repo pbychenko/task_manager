@@ -5,6 +5,8 @@ from app.core.security import create_jwt_token, require_role
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 from app.core.role_levels import RoleLevel
+from typing import Annotated
+from fastapi import Query
 
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
@@ -44,10 +46,9 @@ async def get_user_by_id(
 
 @user_router.get("/", response_model=list[UserRead])
 async def get_users(
-    skip: int = 0,
-    limit: int = 10,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
     _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
-    # _: str = Depends(get_user_from_token),
     user_service: UserService = Depends(get_user_service),
 ):
     return await user_service.get_users(skip, limit)

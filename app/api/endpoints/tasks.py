@@ -7,6 +7,8 @@ from app.services.task_service import TaskService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 from app.core.role_levels import RoleLevel
+from typing import Annotated
+from fastapi import Query
 
 
 task_router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -31,15 +33,15 @@ async def get_task_by_id(
 
 @task_router.get("/", response_model=list[TaskFromDB])
 async def get_all_tasks(
-    skip: int = 0,
-    limit: int = 10,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
     _: str = Depends(get_user_from_token),
     task_service: TaskService = Depends(get_task_service),
 ):
     return await task_service.get_tasks(skip, limit)
 
 
-@task_router.post("/", response_model=TaskFromDB)
+@task_router.post("/", response_model=TaskFromDB, status_code=status.HTTP_201_CREATED)
 async def create_task(
     task_data: TaskCreate,
     task_service: TaskService = Depends(get_task_service),

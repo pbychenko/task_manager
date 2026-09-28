@@ -40,7 +40,7 @@ class TestTaskCreate:
             headers=admin_headers,
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json()["project_id"] == project["id"]
         assert response.json()["creator_id"] == admin_user["id"]
 
@@ -312,7 +312,7 @@ class TestGetTask:
             "/tasks/", json={ **new_task_data, "project_id": task["project_id"] }, headers=manager_headers
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
 
         
         new_task_id = response.json()["id"]
@@ -333,10 +333,7 @@ class TestGetTask:
             {"id": new_task_id, **new_task_data, **default_data},
         ]
 
-        assert sorted(tasks, key=lambda item: item["id"]) == sorted(
-            expected_tasks,
-            key=lambda item: item["id"]
-        )
+        assert tasks == expected_tasks
 
         response = await async_client.get(f"/tasks/{new_task_id}", headers=regular_user_headers)
         new_task = response.json()
@@ -368,3 +365,12 @@ class TestGetTask:
 
         assert response.status_code == 401
         assert response.json()["detail"] == "Not authenticated"
+
+        # проверка невалидных значений limit и skip
+        response = await async_client.get(f"/tasks/", params={"skip": -1, "limit": 0}, headers=regular_user_headers)
+        assert response.status_code == 422
+
+        response = await async_client.get(f"/tasks/", params={"limit": 101}, headers=regular_user_headers)
+        assert response.status_code == 422
+
+        

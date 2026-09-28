@@ -27,7 +27,7 @@ class Repository(AbstractRepository):
         return res.scalar_one_or_none()
 
     async def find_all(self, skip, limit):
-        stmt = select(self.model).offset(skip).limit(limit)
+        stmt = select(self.model).offset(skip).limit(limit).order_by(self.model.id)
         result = await self.session.execute(stmt)
 
         return result.scalars().all()

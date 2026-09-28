@@ -7,8 +7,8 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    name: str = None
-    description: str = None
+    name: str | None = None
+    description: str | None = None
 
     @model_validator(mode="after")
     def has_update_fields(self):

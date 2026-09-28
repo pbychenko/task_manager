@@ -12,12 +12,11 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    title: str = None
-    description: str = None
-    status: Literal["to_do", "in_progress", "review", "completed"] = "to_do"
-    priority: Literal["high", "medium", "low"] = "medium"
+    title: str | None = None
+    description: str | None = None
+    status: Literal["to_do", "in_progress", "review", "completed"] | None = None
+    priority: Literal["high", "medium", "low"] | None = None
     executor_id: int | None = None
-    # project_id: int | None = None
 
     @model_validator(mode="after")
     def has_update_fields(self):

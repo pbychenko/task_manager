@@ -7,6 +7,8 @@ from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 from app.utils.unitofwork import IUnitOfWork, UnitOfWork
 from app.core.role_levels import RoleLevel
+from typing import Annotated
+from fastapi import Query
 
 
 project_router = APIRouter(prefix="/projects", tags=["projects"])
@@ -30,15 +32,15 @@ async def get_project_by_id(
 
 @project_router.get("/", response_model=list[ProjectFromDB])
 async def get_all_projects(
-    skip: int = 0,
-    limit: int = 10,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
     _: UserRead = Depends(require_role(RoleLevel.MANAGER)),
     project_service: ProjectService = Depends(get_project_service),
 ):
     return await project_service.get_projects(skip, limit)
 
 
-@project_router.post("/", response_model=ProjectFromDB)
+@project_router.post("/", response_model=ProjectFromDB, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_data: ProjectCreate,
     project_service: ProjectService = Depends(get_project_service),

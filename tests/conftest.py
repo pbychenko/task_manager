@@ -215,7 +215,7 @@ project_data = {"name": "new project", "description": "new_project_description"}
 async def project(async_client: AsyncClient, manager_headers: dict) -> dict:
     response = await async_client.post("/projects/", json=project_data, headers=manager_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     return response.json()
 
@@ -226,6 +226,6 @@ task_data = {"title": "new task", "description": "new_task_description"}
 async def task(async_client: AsyncClient, manager_headers: dict, project: dict) -> dict:
     response = await async_client.post("/tasks/", json={ **task_data, "project_id": project["id"] }, headers=manager_headers)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     return response.json()

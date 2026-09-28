@@ -171,7 +171,7 @@ class TestGetProject:
             "/projects/", json=new_project_data, headers=manager_headers
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
 
         project_id_2 = response.json()["id"]
         response = await async_client.get("/projects/", headers=manager_headers)
@@ -187,10 +187,7 @@ class TestGetProject:
             {"id": project_id_2, **new_project_data, **default_data},
         ]
 
-        assert sorted(projects, key=lambda item: item["id"]) == sorted(
-            expected_projects,
-            key=lambda item: item["id"]
-        )
+        assert projects == expected_projects
 
         response = await async_client.get(f"/projects/{project_id_2}", headers=manager_headers)
         project = response.json()
